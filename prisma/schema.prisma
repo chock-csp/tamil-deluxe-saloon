@@ -1,0 +1,45 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Playlist {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  youtubeId   String
+  category    String   @default("90s Hits")
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  trackCount  Int      @default(0)
+  coverUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model SiteSettings {
+  id                       String   @id @default("default")
+  activeOverridePlaylistId String?
+  liveListenerBase         Int      @default(45)
+  sponsorBannerEnabled     Boolean  @default(true)
+  adSenseEnabled           Boolean  @default(true)
+  adSensePublisherId       String   @default("ca-pub-1234567890123456")
+  bannerText               String   @default("வணக்கம்! தமிழ் டீ கடை & சலூன் 90s/2000s Hits 💈☕ 24/7 Retro Tamil Radio")
+  customAdHtml             String   @default("<div class='p-3 text-center text-xs opacity-75 border border-amber-500/20 rounded bg-amber-500/10 text-amber-200'>⚡ Sponsor Space: Contact admin for ad placement ⚡</div>")
+  spotifyUrl               String   @default("https://open.spotify.com")
+  ytMusicUrl               String   @default("https://music.youtube.com")
+  updatedAt                DateTime @updatedAt
+}
+
