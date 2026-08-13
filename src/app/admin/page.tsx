@@ -106,7 +106,13 @@ export default function AdminPage() {
 
   const handleRowChange = (index: number, field: keyof PlaylistRow, value: string) => {
     const updated = [...rows];
-    updated[index] = { ...updated[index], [field]: value };
+    let val = value;
+    if (field === 'youtubeId' && val.includes('list=')) {
+      const extracted = val.split('list=')[1].split('&')[0];
+      val = extracted;
+      updated[index].ytMusicUrl = `https://music.youtube.com/playlist?list=${extracted}`;
+    }
+    updated[index] = { ...updated[index], [field]: val };
     setRows(updated);
   };
 

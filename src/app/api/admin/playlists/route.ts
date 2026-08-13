@@ -83,14 +83,19 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Playlist ID required' }, { status: 400 });
     }
 
+    let cleanYoutubeId = youtubeId || '';
+    if (cleanYoutubeId.includes('list=')) {
+      cleanYoutubeId = cleanYoutubeId.split('list=')[1].split('&')[0];
+    }
+
     const playlist = await db.playlist.update({
       where: { id },
       data: {
         title,
         description,
-        youtubeId,
+        youtubeId: cleanYoutubeId,
         spotifyUrl: spotifyUrl || 'https://open.spotify.com',
-        ytMusicUrl: ytMusicUrl || `https://music.youtube.com/playlist?list=${youtubeId}`,
+        ytMusicUrl: ytMusicUrl || `https://music.youtube.com/playlist?list=${cleanYoutubeId}`,
         category,
         coverUrl,
         trackCount: Number(trackCount) || 20,

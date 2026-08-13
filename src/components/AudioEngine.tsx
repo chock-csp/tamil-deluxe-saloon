@@ -196,12 +196,16 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
     playerContainer.id = elementId;
     containerRef.current.appendChild(playerContainer);
 
+    const cleanId = playlistId.includes('list=')
+      ? playlistId.split('list=')[1].split('&')[0]
+      : playlistId.trim();
+
     playerRef.current = new window.YT!.Player(elementId, {
       height: '1',
       width: '1',
       playerVars: {
         listType: 'playlist',
-        list: playlistId,
+        list: cleanId,
         autoplay: 0,
         controls: 0,
         disablekb: 1,
@@ -253,9 +257,12 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
   // Load new playlist when prop changes
   useEffect(() => {
     if (playerRef.current && playlistId && playerRef.current.loadPlaylist) {
+      const cleanId = playlistId.includes('list=')
+        ? playlistId.split('list=')[1].split('&')[0]
+        : playlistId.trim();
       playerRef.current.loadPlaylist({
         listType: 'playlist',
-        list: playlistId,
+        list: cleanId,
         index: 0,
       });
     }
