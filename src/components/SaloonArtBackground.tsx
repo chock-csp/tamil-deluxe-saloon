@@ -24,7 +24,7 @@ export const SaloonArtBackground: React.FC<SaloonArtBackgroundProps> = ({
           fill
           priority
           sizes="100vw"
-          className="object-cover object-center opacity-45 mix-blend-luminosity"
+          className="object-cover object-center opacity-70"
         />
       </div>
 
@@ -40,18 +40,18 @@ export const SaloonArtBackground: React.FC<SaloonArtBackgroundProps> = ({
           fill
           priority
           sizes="100vw"
-          className="object-cover object-center opacity-50 mix-blend-luminosity"
+          className="object-cover object-center opacity-75"
         />
       </div>
 
       {/* Warm Retro Amber & Teak Saloon Vignette Gradients */}
-      <div className="absolute inset-0 bg-gradient-to-t from-[#0d0805] via-[#1a0f0a]/70 to-[#0a0604]/80" />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#0d0805]/90 via-transparent to-[#0d0805]/90" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#0d0805] via-[#1a0f0a]/50 to-[#0a0604]/60" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#0d0805]/70 via-transparent to-[#0d0805]/70" />
 
       {/* Animated Barber Pole Spiral Light Pillars (Left & Right) */}
       <div
-        className={`absolute top-0 bottom-0 left-0 w-12 sm:w-20 opacity-30 mix-blend-screen transition-opacity duration-700 ${
-          isPlaying ? 'opacity-60' : 'opacity-30'
+        className={`absolute top-0 bottom-0 left-0 w-10 sm:w-16 opacity-30 mix-blend-screen transition-opacity duration-700 ${
+          isPlaying ? 'opacity-60' : 'opacity-25'
         }`}
         style={{
           background:
@@ -61,8 +61,8 @@ export const SaloonArtBackground: React.FC<SaloonArtBackgroundProps> = ({
         }}
       />
       <div
-        className={`absolute top-0 bottom-0 right-0 w-12 sm:w-20 opacity-30 mix-blend-screen transition-opacity duration-700 ${
-          isPlaying ? 'opacity-60' : 'opacity-30'
+        className={`absolute top-0 bottom-0 right-0 w-10 sm:w-16 opacity-30 mix-blend-screen transition-opacity duration-700 ${
+          isPlaying ? 'opacity-60' : 'opacity-25'
         }`}
         style={{
           background:
@@ -74,28 +74,13 @@ export const SaloonArtBackground: React.FC<SaloonArtBackgroundProps> = ({
 
       {/* Bright Central Warmth & Neon Glow Orbs */}
       <div
-        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[450px] sm:w-[650px] sm:h-[650px] rounded-full bg-amber-500/25 blur-[120px] transition-all duration-1000 ${
-          isPlaying ? 'scale-110 opacity-90 animate-pulse' : 'scale-100 opacity-50'
+        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[450px] sm:w-[650px] sm:h-[650px] rounded-full bg-amber-500/20 blur-[120px] transition-all duration-1000 ${
+          isPlaying ? 'scale-110 opacity-80 animate-pulse' : 'scale-100 opacity-40'
         }`}
       />
-      <div
-        className={`absolute bottom-10 left-1/4 w-80 h-80 rounded-full bg-teal-500/20 blur-[100px] transition-opacity duration-1000 ${
-          isPlaying ? 'opacity-80' : 'opacity-40'
-        }`}
-      />
-
-      {/* Vintage Tamil Saloon Watermark Typography */}
-      <div className="absolute inset-0 flex justify-between items-center px-6 sm:px-16 pointer-events-none opacity-20">
-        <span className="text-amber-200 font-serif text-6xl sm:text-9xl font-black tracking-widest transform -rotate-12 select-none">
-          டீ கடை ☕
-        </span>
-        <span className="text-teal-200 font-serif text-6xl sm:text-9xl font-black tracking-widest transform rotate-12 select-none">
-          சலூன் 💈
-        </span>
-      </div>
 
       {/* Audio Reactive Visualizer Top Light Bars */}
-      <div className="absolute top-0 inset-x-0 h-24 flex items-start justify-center space-x-1 sm:space-x-2 pt-2 px-8 opacity-70">
+      <div className="absolute top-0 inset-x-0 h-20 flex items-start justify-center space-x-1 sm:space-x-2 pt-2 px-8 opacity-60">
         {Array.from({ length: 40 }).map((_, i) => (
           <div
             key={i}
