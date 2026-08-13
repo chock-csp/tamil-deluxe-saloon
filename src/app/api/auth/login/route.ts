@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { verifyPassword, signAdminToken, setAdminSessionCookie } from '@/lib/auth';
+import { signAdminToken, setAdminSessionCookie } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
@@ -13,31 +12,22 @@ export async function POST(request: Request) {
       );
     }
 
-    const admin = await db.admin.findUnique({
-      where: { username },
-    });
+    const expectedAdmin = process.env.ADMIN_USERNAME || 'admin';
+    const expectedPassword = process.env.ADMIN_INITIAL_PASSWORD || 'saloon123';
 
-    if (!admin) {
+    if (username !== expectedAdmin || password !== expectedPassword) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
       );
     }
 
-    const isValid = await verifyPassword(password, admin.passwordHash);
-    if (!isValid) {
-      return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
-      );
-    }
-
-    const token = await signAdminToken(admin.id, admin.username);
+    const token = await signAdminToken('admin-user-id', expectedAdmin);
     await setAdminSessionCookie(token);
 
     return NextResponse.json({
       success: true,
-      user: { id: admin.id, username: admin.username },
+      user: { id: 'admin-user-id', username: expectedAdmin },
     });
   } catch (error) {
     console.error('Login error:', error);

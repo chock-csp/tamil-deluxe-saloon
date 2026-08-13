@@ -1,32 +1,14 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { getStorageData } from '@/lib/storage';
 
 export async function GET() {
   try {
-    let settings = await db.siteSettings.findUnique({
-      where: { id: 'default' },
-    });
-
-    if (!settings) {
-      settings = await db.siteSettings.create({
-        data: {
-          id: 'default',
-          liveListenerBase: 48,
-          sponsorBannerEnabled: true,
-          adSenseEnabled: true,
-          bannerText: 'வணக்கம்! தமிழ் டீ கடை & சலூன் 90s/2000s Hits 💈☕ 24/7 Retro Radio',
-        },
-      });
-    }
-
-    const playlists = await db.playlist.findMany({
-      where: { isActive: true },
-      orderBy: { order: 'asc' },
-    });
+    const data = getStorageData();
+    const playlists = data.rows || [];
 
     if (playlists.length === 0) {
       return NextResponse.json(
-        { error: 'No playlists configured' },
+        { error: 'No playlist rows configured' },
         { status: 404 }
       );
     }
@@ -39,46 +21,35 @@ export async function GET() {
       (startOfYear.getTimezoneOffset() - now.getTimezoneOffset()) * 60 * 1000;
     const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-    let featuredPlaylist = null;
     let selectedIndex = dayOfYear % playlists.length;
+    let isOverride = false;
 
-    if (settings.activeOverridePlaylistId) {
-      const overridePlaylist = playlists.find(
-        (p) => p.id === settings.activeOverridePlaylistId
-      );
-      if (overridePlaylist) {
-        featuredPlaylist = overridePlaylist;
-        selectedIndex = playlists.findIndex(
-          (p) => p.id === settings.activeOverridePlaylistId
-        );
-      }
+    if (
+      data.activeOverrideIndex !== null &&
+      data.activeOverrideIndex !== undefined &&
+      data.activeOverrideIndex >= 0 &&
+      data.activeOverrideIndex < playlists.length
+    ) {
+      selectedIndex = data.activeOverrideIndex;
+      isOverride = true;
     }
 
-    if (!featuredPlaylist) {
-      featuredPlaylist = playlists[selectedIndex] || playlists[0];
-    }
+    const featuredPlaylist = playlists[selectedIndex] || playlists[0];
 
     return NextResponse.json({
       dayOfYear,
       todayIndex: selectedIndex,
-      isOverride: Boolean(settings.activeOverridePlaylistId),
+      isOverride,
       featuredPlaylist,
       playlists,
       settings: {
-        bannerText: settings.bannerText,
-        liveListenerBase: settings.liveListenerBase,
-        sponsorBannerEnabled: settings.sponsorBannerEnabled,
-        adSenseEnabled: settings.adSenseEnabled,
-        adSensePublisherId: settings.adSensePublisherId,
-        customAdHtml: settings.customAdHtml,
-        spotifyUrl: settings.spotifyUrl,
-        ytMusicUrl: settings.ytMusicUrl,
+        liveListenerBase: data.liveListenerBase || 48,
       },
     });
   } catch (error) {
-    console.error('Radio API error:', error);
+    console.error('Public radio API error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch radio configuration' },
+      { error: 'Failed to fetch radio config' },
       { status: 500 }
     );
   }

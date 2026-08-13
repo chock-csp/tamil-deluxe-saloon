@@ -1,15 +1,6 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { getAdminSession } from '@/lib/auth';
-
-function cleanYoutubeId(input: string): string {
-  if (!input) return '';
-  let id = input.trim();
-  if (id.includes('list=')) {
-    id = id.split('list=')[1].split('&')[0];
-  }
-  return id;
-}
+import { getStorageData, saveStorageData } from '@/lib/storage';
 
 export async function GET() {
   const session = await getAdminSession();
@@ -17,14 +8,8 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  try {
-    const playlists = await db.playlist.findMany({
-      orderBy: { order: 'asc' },
-    });
-    return NextResponse.json({ playlists });
-  } catch (error) {
-    return NextResponse.json({ error: 'Database error' }, { status: 500 });
-  }
+  const data = getStorageData();
+  return NextResponse.json({ playlists: data.rows });
 }
 
 export async function PUT(request: Request) {
@@ -36,7 +21,7 @@ export async function PUT(request: Request) {
   try {
     const body = await request.json();
 
-    const rowsList = Array.isArray(body.rows)
+    const incomingRows = Array.isArray(body.rows)
       ? body.rows
       : Array.isArray(body.playlists)
       ? body.playlists
@@ -44,94 +29,16 @@ export async function PUT(request: Request) {
       ? body
       : null;
 
-    // 1. BATCH SAVE ALL 10 ROWS (ROBUST ORDER-BASED UPSERT)
-    if (rowsList) {
-      const savedPlaylists = [];
-
-      for (let i = 0; i < rowsList.length; i++) {
-        const item = rowsList[i];
-        const youtubeId = cleanYoutubeId(item.youtubeId || '');
-        const spotifyUrl = item.spotifyUrl || 'https://open.spotify.com';
-        const ytMusicUrl =
-          item.ytMusicUrl ||
-          (youtubeId
-            ? `https://music.youtube.com/playlist?list=${youtubeId}`
-            : 'https://music.youtube.com');
-
-        // Check if row exists by ID or by Order index
-        let existing = null;
-        if (item.id) {
-          try {
-            existing = await db.playlist.findUnique({ where: { id: item.id } });
-          } catch (e) {
-            existing = null;
-          }
-        }
-        if (!existing) {
-          existing = await db.playlist.findFirst({ where: { order: i } });
-        }
-
-        if (existing) {
-          const updated = await db.playlist.update({
-            where: { id: existing.id },
-            data: {
-              title: item.title || `Row ${i + 1}`,
-              youtubeId,
-              spotifyUrl,
-              ytMusicUrl,
-              order: i,
-              isActive: true,
-            },
-          });
-          savedPlaylists.push(updated);
-        } else {
-          const created = await db.playlist.create({
-            data: {
-              title: item.title || `Row ${i + 1}`,
-              description: item.description || '',
-              youtubeId,
-              spotifyUrl,
-              ytMusicUrl,
-              order: i,
-              isActive: true,
-            },
-          });
-          savedPlaylists.push(created);
-        }
-      }
-
-      return NextResponse.json({ success: true, playlists: savedPlaylists });
+    if (!incomingRows) {
+      return NextResponse.json({ error: 'Rows array is required' }, { status: 400 });
     }
 
-    // 2. SINGLE ITEM UPDATE FALLBACK
-    const { id, title, youtubeId, spotifyUrl, ytMusicUrl, order } = body;
-    if (!id) {
-      return NextResponse.json({ error: 'Playlist ID required' }, { status: 400 });
-    }
-
-    const cleanId = cleanYoutubeId(youtubeId);
-
-    const playlist = await db.playlist.update({
-      where: { id },
-      data: {
-        title,
-        youtubeId: cleanId,
-        spotifyUrl: spotifyUrl || 'https://open.spotify.com',
-        ytMusicUrl:
-          ytMusicUrl ||
-          (cleanId
-            ? `https://music.youtube.com/playlist?list=${cleanId}`
-            : 'https://music.youtube.com'),
-        order: order !== undefined ? Number(order) : 0,
-      },
-    });
-
-    return NextResponse.json({ playlist });
+    const updated = saveStorageData({ rows: incomingRows });
+    return NextResponse.json({ success: true, playlists: updated.rows });
   } catch (error) {
-    console.error('API PUT error detail:', error);
-    const msg = error instanceof Error ? error.message : String(error);
+    console.error('API PUT error:', error);
     return NextResponse.json(
-      { error: `Failed to update playlist: ${msg}` },
+      { error: 'Failed to update playlists in JSON file' },
       { status: 500 }
     );
   }

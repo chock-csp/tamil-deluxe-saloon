@@ -119,7 +119,7 @@ export default function AdminPage() {
   const handleSaveAllRows = async () => {
     setSaving(true);
     try {
-      // 1. Batch Save All 10 Rows in a single payload
+      // 1. Save rows array to JSON storage
       const pRes = await fetch('/api/admin/playlists', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -137,29 +137,21 @@ export default function AdminPage() {
         return;
       }
 
-      const pData = await pRes.json();
-      const savedPlaylists: PlaylistRow[] = pData.playlists || [];
-
-      // Match active override ID to new saved database ID if needed
-      let finalOverrideId = activeOverrideId;
-      if (savedPlaylists.length > 0 && activeOverrideId) {
-        const prevIndex = rows.findIndex((r) => r.id === activeOverrideId);
-        if (prevIndex !== -1 && savedPlaylists[prevIndex]) {
-          finalOverrideId = savedPlaylists[prevIndex].id;
-        }
-      }
-
       // 2. Save Active Override
+      const activeIndex = rows.findIndex((r) => r.id === activeOverrideId);
       await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activeOverridePlaylistId: finalOverrideId }),
+        body: JSON.stringify({
+          activeOverridePlaylistId: activeOverrideId,
+          activeOverrideIndex: activeIndex !== -1 ? activeIndex : 0,
+        }),
       });
 
-      // 3. Re-fetch fresh state from server
+      // 3. Re-fetch fresh state from playlists.json
       await fetchRowsData();
 
-      showNotice('All 10 Playlist Rows & Settings Saved Successfully!');
+      showNotice('All 10 Playlist Rows & Settings Saved Successfully to JSON!');
     } catch (e) {
       console.error('Save failed:', e);
       showNotice('Failed to save changes');

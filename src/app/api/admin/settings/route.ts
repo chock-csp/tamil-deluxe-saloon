@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { getAdminSession } from '@/lib/auth';
+import { getStorageData, saveStorageData } from '@/lib/storage';
 
 export async function GET() {
   const session = await getAdminSession();
@@ -8,21 +8,19 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  try {
-    let settings = await db.siteSettings.findUnique({
-      where: { id: 'default' },
-    });
+  const data = getStorageData();
+  const activeOverrideRow =
+    data.activeOverrideIndex !== null && data.activeOverrideIndex !== undefined
+      ? data.rows[data.activeOverrideIndex]
+      : null;
 
-    if (!settings) {
-      settings = await db.siteSettings.create({
-        data: { id: 'default' },
-      });
-    }
-
-    return NextResponse.json({ settings });
-  } catch (error) {
-    return NextResponse.json({ error: 'Database error' }, { status: 500 });
-  }
+  return NextResponse.json({
+    settings: {
+      activeOverridePlaylistId: activeOverrideRow?.id || null,
+      activeOverrideIndex: data.activeOverrideIndex,
+      liveListenerBase: data.liveListenerBase,
+    },
+  });
 }
 
 export async function PUT(request: Request) {
@@ -33,48 +31,32 @@ export async function PUT(request: Request) {
 
   try {
     const body = await request.json();
-    const {
-      activeOverridePlaylistId,
-      liveListenerBase,
-      sponsorBannerEnabled,
-      adSenseEnabled,
-      adSensePublisherId,
-      bannerText,
-      customAdHtml,
-      spotifyUrl,
-      ytMusicUrl,
-    } = body;
+    const { activeOverridePlaylistId, activeOverrideIndex } = body;
 
-    const settings = await db.siteSettings.upsert({
-      where: { id: 'default' },
-      update: {
-        activeOverridePlaylistId: activeOverridePlaylistId || null,
-        liveListenerBase: liveListenerBase !== undefined ? Number(liveListenerBase) : 48,
-        sponsorBannerEnabled: Boolean(sponsorBannerEnabled),
-        adSenseEnabled: Boolean(adSenseEnabled),
-        adSensePublisherId: adSensePublisherId || '',
-        bannerText: bannerText || '',
-        customAdHtml: customAdHtml || '',
-        spotifyUrl: spotifyUrl || '',
-        ytMusicUrl: ytMusicUrl || '',
-      },
-      create: {
-        id: 'default',
-        activeOverridePlaylistId: activeOverridePlaylistId || null,
-        liveListenerBase: liveListenerBase !== undefined ? Number(liveListenerBase) : 48,
-        sponsorBannerEnabled: Boolean(sponsorBannerEnabled),
-        adSenseEnabled: Boolean(adSenseEnabled),
-        adSensePublisherId: adSensePublisherId || '',
-        bannerText: bannerText || '',
-        customAdHtml: customAdHtml || '',
-        spotifyUrl: spotifyUrl || '',
-        ytMusicUrl: ytMusicUrl || '',
+    const data = getStorageData();
+    let newIndex: number | null = null;
+
+    if (typeof activeOverrideIndex === 'number') {
+      newIndex = activeOverrideIndex;
+    } else if (activeOverridePlaylistId) {
+      const idx = data.rows.findIndex((r) => r.id === activeOverridePlaylistId);
+      if (idx !== -1) newIndex = idx;
+    }
+
+    const updated = saveStorageData({ activeOverrideIndex: newIndex });
+
+    return NextResponse.json({
+      settings: {
+        activeOverridePlaylistId:
+          newIndex !== null ? updated.rows[newIndex]?.id : null,
+        activeOverrideIndex: updated.activeOverrideIndex,
       },
     });
-
-    return NextResponse.json({ settings });
   } catch (error) {
     console.error('Settings update error:', error);
-    return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to update settings' },
+      { status: 500 }
+    );
   }
 }
