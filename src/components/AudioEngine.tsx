@@ -218,21 +218,41 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
       events: {
         onReady: (event: { target: YTPlayer }) => {
           event.target.setVolume(volume);
+          try {
+            if (event.target.getVideoData) {
+              const data = event.target.getVideoData();
+              if (data && data.video_id) {
+                setVideoId(data.video_id);
+                if (data.title) setTrackTitle(data.title);
+              }
+            }
+            if (event.target.getPlaylist) {
+              const list = event.target.getPlaylist();
+              if (list && list[0]) {
+                setVideoId((prev) => prev || list[0]);
+                setTotalTracks(list.length);
+              }
+            }
+          } catch (e) {}
         },
         onStateChange: (event: { data: number }) => {
           const state = event.data;
           if (window.YT) {
+            // Read video metadata on CUED (5), UNSTARTED (-1), or PLAYING (1)
+            if (playerRef.current?.getVideoData) {
+              try {
+                const data = playerRef.current.getVideoData();
+                if (data && data.video_id) {
+                  setVideoId(data.video_id);
+                  if (data.title) setTrackTitle(data.title);
+                  if (data.author) setArtistName(data.author);
+                }
+              } catch (e) {}
+            }
+
             if (state === window.YT.PlayerState.PLAYING) {
               setIsPlaying(true);
               setHasUserStarted(true);
-              if (playerRef.current?.getVideoData) {
-                const data = playerRef.current.getVideoData();
-                if (data && data.title) {
-                  setTrackTitle(data.title);
-                  setArtistName(data.author || 'Tamil Radio Hits');
-                  setVideoId(data.video_id || '');
-                }
-              }
             } else if (
               state === window.YT.PlayerState.PAUSED ||
               state === window.YT.PlayerState.ENDED

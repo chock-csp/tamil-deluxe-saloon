@@ -35,6 +35,7 @@ function formatTime(seconds: number): string {
 export default function MinimalSaloonHomePage() {
   const [data, setData] = useState<RadioResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialThumbnail, setInitialThumbnail] = useState<string | null>(null);
 
   // Audio state
   const [audioState, setAudioState] = useState({
@@ -66,6 +67,24 @@ export default function MinimalSaloonHomePage() {
           const json: RadioResponse = await res.json();
           setData(json);
           setListenerCount(json.settings?.liveListenerBase || 48);
+
+          // Fetch initial thumbnail for playlist immediately on site load
+          const yId = json.featuredPlaylist?.youtubeId;
+          if (yId) {
+            try {
+              const noembedRes = await fetch(
+                `https://noembed.com/embed?url=https://www.youtube.com/playlist?list=${yId}`
+              );
+              if (noembedRes.ok) {
+                const noembedData = await noembedRes.json();
+                if (noembedData.thumbnail_url) {
+                  setInitialThumbnail(noembedData.thumbnail_url);
+                }
+              }
+            } catch (e) {
+              // Ignore noembed errors
+            }
+          }
         }
       } catch (e) {
         console.error('Failed to load radio:', e);
@@ -103,10 +122,10 @@ export default function MinimalSaloonHomePage() {
       ? `https://music.youtube.com/playlist?list=${playlist.youtubeId}`
       : 'https://music.youtube.com');
 
-  // YouTube Thumbnail URL for current video
+  // YouTube Thumbnail URL: Active Video ID -> Initial Playlist Thumbnail -> Fallback null
   const youtubeThumbnailUrl = audioState.videoId
     ? `https://img.youtube.com/vi/${audioState.videoId}/hqdefault.jpg`
-    : null;
+    : initialThumbnail || null;
 
   const togglePlay = () => {
     window.dispatchEvent(new CustomEvent('yt-toggle-play'));
@@ -150,28 +169,22 @@ export default function MinimalSaloonHomePage() {
         {/* 2. YouTube Thumbnail Album Cover / Vinyl Disc Module */}
         <div className="relative group flex flex-col items-center">
           
-          {/* Circular YouTube Thumbnail Cover with Vinyl Disc Ring */}
+          {/* Circular Stationary YouTube Thumbnail Cover */}
           <div
             className={`w-40 h-40 sm:w-52 sm:h-52 rounded-full p-2 bg-gradient-to-tr from-amber-500/30 via-amber-400/10 to-teal-500/30 border-2 border-amber-500/40 shadow-2xl relative flex items-center justify-center overflow-hidden transition-transform duration-700 ${
               audioState.isPlaying ? 'scale-105 shadow-amber-500/40' : 'scale-100'
             }`}
           >
             {youtubeThumbnailUrl ? (
-              // YouTube Video Thumbnail Image
+              // Stationary YouTube Video Thumbnail Image
               <img
                 src={youtubeThumbnailUrl}
                 alt={audioState.trackTitle || 'YouTube Song Thumbnail'}
-                className={`w-full h-full object-cover rounded-full transition-transform duration-1000 ${
-                  audioState.isPlaying ? 'animate-spin-vinyl' : ''
-                }`}
+                className="w-full h-full object-cover rounded-full"
               />
             ) : (
               // Vinyl Placeholder Icon
-              <div
-                className={`w-full h-full rounded-full bg-black/80 flex items-center justify-center border border-amber-500/20 ${
-                  audioState.isPlaying ? 'animate-spin-vinyl' : ''
-                }`}
-              >
+              <div className="w-full h-full rounded-full bg-black/80 flex items-center justify-center border border-amber-500/20">
                 <Music className="w-16 h-16 text-amber-400/60" />
               </div>
             )}
@@ -181,7 +194,7 @@ export default function MinimalSaloonHomePage() {
               <div className="w-2.5 h-2.5 rounded-full bg-amber-400/80" />
             </div>
 
-            {/* Ambient Pulse Ring when Playing */}
+            {/* Subtle Glow Ring when Playing */}
             {audioState.isPlaying && (
               <div className="absolute inset-0 rounded-full border-2 border-amber-400/40 animate-ping opacity-30 pointer-events-none" />
             )}
