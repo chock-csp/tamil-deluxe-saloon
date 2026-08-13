@@ -91,6 +91,10 @@ export default function SaloonHomePage() {
   const playlists = data?.playlists || [];
   const settings = data?.settings;
 
+  const handleAudioStateChange = React.useCallback((state: typeof audioState) => {
+    setAudioState(state);
+  }, []);
+
   return (
     <div className="min-h-screen relative flex flex-col justify-between overflow-x-hidden text-amber-100 selection:bg-amber-500 selection:text-black">
       {/* Background Atmosphere & Animations */}
@@ -100,9 +104,10 @@ export default function SaloonHomePage() {
       {activePlaylist && (
         <AudioEngine
           playlistId={activePlaylist.youtubeId}
-          onStateChange={(state) => setAudioState(state)}
+          onStateChange={handleAudioStateChange}
         />
       )}
+
 
       {/* Main Container */}
       <div className="relative z-10 flex flex-col min-h-screen">

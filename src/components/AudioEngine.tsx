@@ -94,10 +94,15 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
   const [hasUserStarted, setHasUserStarted] = useState(false);
   const [isApiReady, setIsApiReady] = useState(false);
 
-  // Update parent state helper
-  const updateParent = useCallback(() => {
-    if (onStateChange) {
-      onStateChange({
+  const onStateChangeRef = useRef(onStateChange);
+  useEffect(() => {
+    onStateChangeRef.current = onStateChange;
+  }, [onStateChange]);
+
+  // Update parent state helper safely without infinite dependency loops
+  useEffect(() => {
+    if (onStateChangeRef.current) {
+      onStateChangeRef.current({
         isPlaying,
         currentTime,
         duration,
@@ -123,12 +128,8 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
     trackIndex,
     totalTracks,
     hasUserStarted,
-    onStateChange,
   ]);
 
-  useEffect(() => {
-    updateParent();
-  }, [updateParent]);
 
   // Sync state loop
   useEffect(() => {
