@@ -36,12 +36,20 @@ export async function PUT(request: Request) {
   try {
     const body = await request.json();
 
+    const rowsList = Array.isArray(body.rows)
+      ? body.rows
+      : Array.isArray(body.playlists)
+      ? body.playlists
+      : Array.isArray(body)
+      ? body
+      : null;
+
     // 1. BATCH SAVE ALL 10 ROWS (ROBUST ORDER-BASED UPSERT)
-    if (Array.isArray(body.rows)) {
+    if (rowsList) {
       const savedPlaylists = [];
 
-      for (let i = 0; i < body.rows.length; i++) {
-        const item = body.rows[i];
+      for (let i = 0; i < rowsList.length; i++) {
+        const item = rowsList[i];
         const youtubeId = cleanYoutubeId(item.youtubeId || '');
         const spotifyUrl = item.spotifyUrl || 'https://open.spotify.com';
         const ytMusicUrl =
@@ -53,7 +61,11 @@ export async function PUT(request: Request) {
         // Check if row exists by ID or by Order index
         let existing = null;
         if (item.id) {
-          existing = await db.playlist.findUnique({ where: { id: item.id } });
+          try {
+            existing = await db.playlist.findUnique({ where: { id: item.id } });
+          } catch (e) {
+            existing = null;
+          }
         }
         if (!existing) {
           existing = await db.playlist.findFirst({ where: { order: i } });
@@ -116,7 +128,11 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ playlist });
   } catch (error) {
-    console.error('API PUT error:', error);
-    return NextResponse.json({ error: 'Failed to update playlist' }, { status: 500 });
+    console.error('API PUT error detail:', error);
+    const msg = error instanceof Error ? error.message : String(error);
+    return NextResponse.json(
+      { error: `Failed to update playlist: ${msg}` },
+      { status: 500 }
+    );
   }
 }
