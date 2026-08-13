@@ -119,21 +119,38 @@ export default function AdminPage() {
   const handleSaveAllRows = async () => {
     setSaving(true);
     try {
-      // 1. Save all rows
-      for (const row of rows) {
-        await fetch('/api/admin/playlists', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(row),
-        });
+      // 1. Batch Save All 10 Rows in a single payload
+      const pRes = await fetch('/api/admin/playlists', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows }),
+      });
+
+      if (!pRes.ok) {
+        throw new Error('Failed to save playlist rows');
+      }
+
+      const pData = await pRes.json();
+      const savedPlaylists: PlaylistRow[] = pData.playlists || [];
+
+      // Match active override ID to new saved database ID if needed
+      let finalOverrideId = activeOverrideId;
+      if (savedPlaylists.length > 0 && activeOverrideId) {
+        const prevIndex = rows.findIndex((r) => r.id === activeOverrideId);
+        if (prevIndex !== -1 && savedPlaylists[prevIndex]) {
+          finalOverrideId = savedPlaylists[prevIndex].id;
+        }
       }
 
       // 2. Save Active Override
       await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activeOverridePlaylistId: activeOverrideId }),
+        body: JSON.stringify({ activeOverridePlaylistId: finalOverrideId }),
       });
+
+      // 3. Re-fetch fresh state from server
+      await fetchRowsData();
 
       showNotice('All 10 Playlist Rows & Settings Saved Successfully!');
     } catch (e) {
