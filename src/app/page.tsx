@@ -57,6 +57,10 @@ export default function SaloonHomePage() {
     time?: number;
   } | null>(null);
 
+  const handleAudioStateChange = React.useCallback((state: typeof audioState) => {
+    setAudioState(state);
+  }, []);
+
   useEffect(() => {
     async function fetchRadioData() {
       try {
@@ -91,9 +95,6 @@ export default function SaloonHomePage() {
   const playlists = data?.playlists || [];
   const settings = data?.settings;
 
-  const handleAudioStateChange = React.useCallback((state: typeof audioState) => {
-    setAudioState(state);
-  }, []);
 
   return (
     <div className="min-h-screen relative flex flex-col justify-between overflow-x-hidden text-amber-100 selection:bg-amber-500 selection:text-black">
