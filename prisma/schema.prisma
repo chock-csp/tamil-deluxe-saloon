@@ -11,8 +11,10 @@ datasource db {
 model Playlist {
   id          String   @id @default(cuid())
   title       String
-  description String
+  description String   @default("")
   youtubeId   String
+  spotifyUrl  String   @default("https://open.spotify.com")
+  ytMusicUrl  String   @default("https://music.youtube.com")
   category    String   @default("90s Hits")
   order       Int      @default(0)
   isActive    Boolean  @default(true)

@@ -78,7 +78,7 @@ export async function PUT(request: Request) {
     }
 
     // Single item update
-    const { id, title, description, youtubeId, category, coverUrl, trackCount, isActive, order } = body;
+    const { id, title, description, youtubeId, spotifyUrl, ytMusicUrl, category, coverUrl, trackCount, isActive, order } = body;
     if (!id) {
       return NextResponse.json({ error: 'Playlist ID required' }, { status: 400 });
     }
@@ -89,10 +89,12 @@ export async function PUT(request: Request) {
         title,
         description,
         youtubeId,
+        spotifyUrl: spotifyUrl || 'https://open.spotify.com',
+        ytMusicUrl: ytMusicUrl || `https://music.youtube.com/playlist?list=${youtubeId}`,
         category,
         coverUrl,
-        trackCount: Number(trackCount),
-        isActive,
+        trackCount: Number(trackCount) || 20,
+        isActive: isActive !== undefined ? Boolean(isActive) : true,
         order,
       },
     });
