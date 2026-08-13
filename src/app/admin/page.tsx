@@ -127,7 +127,14 @@ export default function AdminPage() {
       });
 
       if (!pRes.ok) {
-        throw new Error('Failed to save playlist rows');
+        if (pRes.status === 401) {
+          setIsAuthenticated(false);
+          showNotice('Session expired. Please sign in again.');
+          return;
+        }
+        const errJson = await pRes.json().catch(() => ({}));
+        showNotice(errJson.error || 'Failed to save playlist rows');
+        return;
       }
 
       const pData = await pRes.json();
