@@ -8,6 +8,7 @@ export interface PlaylistRowItem {
   youtubeId: string;
   spotifyUrl: string;
   ytMusicUrl: string;
+  isActive: boolean;
 }
 
 export interface PlaylistsStorageSchema {
@@ -27,13 +28,14 @@ function cleanYoutubeId(input: string): string {
   return id;
 }
 
-const defaultRows: PlaylistRowItem[] = [
+const defaultRows: Omit<PlaylistRowItem, 'id'>[] = [
   {
     order: 0,
     title: 'Row 1 - 90s Evergreen Saloon Hits',
     youtubeId: 'PLPeMc_mgX1mlflEDmd523UJ5oDd74H6g8',
     spotifyUrl: 'https://open.spotify.com/playlist/37i9dQZF1DXa7aEa6s0nQe',
     ytMusicUrl: 'https://music.youtube.com/playlist?list=PLPeMc_mgX1mlflEDmd523UJ5oDd74H6g8',
+    isActive: true,
   },
   {
     order: 1,
@@ -41,6 +43,7 @@ const defaultRows: PlaylistRowItem[] = [
     youtubeId: 'PLV_X8rZ20K4qY_F8K5t5d5z5e5r5t5y5',
     spotifyUrl: 'https://open.spotify.com/playlist/37i9dQZF1DWYw4K5a5e5r5',
     ytMusicUrl: 'https://music.youtube.com/playlist?list=PLV_X8rZ20K4qY_F8K5t5d5z5e5r5t5y5',
+    isActive: true,
   },
   {
     order: 2,
@@ -48,6 +51,7 @@ const defaultRows: PlaylistRowItem[] = [
     youtubeId: 'PL7dJzW4d3mX9_k8Y7z6W5v4U3t2S1r0',
     spotifyUrl: 'https://open.spotify.com/playlist/37i9dQZF1DX4t2S1r0nQe',
     ytMusicUrl: 'https://music.youtube.com/playlist?list=PL7dJzW4d3mX9_k8Y7z6W5v4U3t2S1r0',
+    isActive: true,
   },
   {
     order: 3,
@@ -55,6 +59,7 @@ const defaultRows: PlaylistRowItem[] = [
     youtubeId: 'PL8Y3Z2W1X0_9V8U7T6S5R4Q3P2O1N',
     spotifyUrl: 'https://open.spotify.com/playlist/37i9dQZF1DX3P2O1NnQe',
     ytMusicUrl: 'https://music.youtube.com/playlist?list=PL8Y3Z2W1X0_9V8U7T6S5R4Q3P2O1N',
+    isActive: true,
   },
   {
     order: 4,
@@ -62,6 +67,7 @@ const defaultRows: PlaylistRowItem[] = [
     youtubeId: 'PL0A1B2C3D4E5F6G7H8I9J0K1L2M3N',
     spotifyUrl: 'https://open.spotify.com/playlist/37i9dQZF1DX1L2M3NnQe',
     ytMusicUrl: 'https://music.youtube.com/playlist?list=PL0A1B2C3D4E5F6G7H8I9J0K1L2M3N',
+    isActive: true,
   },
   {
     order: 5,
@@ -69,6 +75,7 @@ const defaultRows: PlaylistRowItem[] = [
     youtubeId: 'PL9M8N7O6P5Q4R3S2T1U0V9W8X7Y6Z',
     spotifyUrl: 'https://open.spotify.com/playlist/37i9dQZF1DX8X7Y6ZnQe',
     ytMusicUrl: 'https://music.youtube.com/playlist?list=PL9M8N7O6P5Q4R3S2T1U0V9W8X7Y6Z',
+    isActive: true,
   },
   {
     order: 6,
@@ -76,6 +83,7 @@ const defaultRows: PlaylistRowItem[] = [
     youtubeId: 'PL1a2b3c4d5e6f7g8h9i0j1k2l3m4n',
     spotifyUrl: 'https://open.spotify.com/playlist/37i9dQZF1DX2l3m4nnQe',
     ytMusicUrl: 'https://music.youtube.com/playlist?list=PL1a2b3c4d5e6f7g8h9i0j1k2l3m4n',
+    isActive: true,
   },
   {
     order: 7,
@@ -83,6 +91,7 @@ const defaultRows: PlaylistRowItem[] = [
     youtubeId: 'PL5n6m7l8k9j0i1h2g3f4e5d6c7b8a',
     spotifyUrl: 'https://open.spotify.com/playlist/37i9dQZF1DX6c7b8anQe',
     ytMusicUrl: 'https://music.youtube.com/playlist?list=PL5n6m7l8k9j0i1h2g3f4e5d6c7b8a',
+    isActive: true,
   },
   {
     order: 8,
@@ -90,6 +99,7 @@ const defaultRows: PlaylistRowItem[] = [
     youtubeId: 'PLz1y2x3w4v5u6t7s8r9q0p1o2n3m4',
     spotifyUrl: 'https://open.spotify.com/playlist/37i9dQZF1DX1o2n3mnQe',
     ytMusicUrl: 'https://music.youtube.com/playlist?list=PLz1y2x3w4v5u6t7s8r9q0p1o2n3m4',
+    isActive: true,
   },
   {
     order: 9,
@@ -97,6 +107,7 @@ const defaultRows: PlaylistRowItem[] = [
     youtubeId: 'PL4a3b2c1d0e9f8g7h6i5j4k3l2m1n',
     spotifyUrl: 'https://open.spotify.com/playlist/37i9dQZF1DX3l2m1nnQe',
     ytMusicUrl: 'https://music.youtube.com/playlist?list=PL4a3b2c1d0e9f8g7h6i5j4k3l2m1n',
+    isActive: true,
   },
 ];
 
@@ -106,7 +117,7 @@ export function getStorageData(): PlaylistsStorageSchema {
       const content = fs.readFileSync(DATA_FILE_PATH, 'utf-8');
       const json: PlaylistsStorageSchema = JSON.parse(content);
       if (json && Array.isArray(json.rows) && json.rows.length > 0) {
-        // Ensure IDs & YouTube URLs are sanitized
+        // Ensure IDs, YouTube URLs & isActive status are sanitized
         json.rows = json.rows.map((row, idx) => {
           const yId = cleanYoutubeId(row.youtubeId || '');
           return {
@@ -120,6 +131,7 @@ export function getStorageData(): PlaylistsStorageSchema {
               (yId
                 ? `https://music.youtube.com/playlist?list=${yId}`
                 : 'https://music.youtube.com'),
+            isActive: row.isActive !== undefined ? Boolean(row.isActive) : true,
           };
         });
         return json;
@@ -130,7 +142,7 @@ export function getStorageData(): PlaylistsStorageSchema {
   }
 
   const defaultSchema: PlaylistsStorageSchema = {
-    activeOverrideIndex: 0,
+    activeOverrideIndex: null,
     liveListenerBase: 48,
     rows: defaultRows.map((r, idx) => ({ ...r, id: `row-${idx + 1}` })),
   };
@@ -156,6 +168,7 @@ export function saveStorageData(data: Partial<PlaylistsStorageSchema>): Playlist
             (yId
               ? `https://music.youtube.com/playlist?list=${yId}`
               : 'https://music.youtube.com'),
+          isActive: r.isActive !== undefined ? Boolean(r.isActive) : true,
         };
       })
     : current.rows;
