@@ -32,9 +32,15 @@
   animation: spinSlow 12s linear infinite;
 }
 
-.paused {
-  animation-play-state: paused !important;
+@keyframes barberPole {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 100px;
+  }
 }
+
 
 /* Text Marquee for long music titles */
 @keyframes marquee {

@@ -2,10 +2,12 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { AudioEngine } from '@/components/AudioEngine';
-import { Play, Pause, ExternalLink, Disc3 } from 'lucide-react';
+import { SaloonArtBackground } from '@/components/SaloonArtBackground';
+import { Play, Pause, SkipBack, SkipForward, ExternalLink, Disc3 } from 'lucide-react';
 
 interface PlaylistRow {
   id: string;
+  order: number;
   title: string;
   youtubeId: string;
   spotifyUrl: string;
@@ -13,7 +15,11 @@ interface PlaylistRow {
 }
 
 interface RadioResponse {
+  dayOfYear: number;
+  todayIndex: number;
+  isOverride: boolean;
   featuredPlaylist: PlaylistRow;
+  playlists: PlaylistRow[];
   settings: {
     liveListenerBase: number;
   };
@@ -81,7 +87,7 @@ export default function MinimalSaloonHomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0705] flex items-center justify-center text-amber-300/80">
+      <div className="min-h-screen bg-[#1a0f0a] flex items-center justify-center text-amber-300">
         <Disc3 className="w-8 h-8 animate-spin" />
       </div>
     );
@@ -99,14 +105,18 @@ export default function MinimalSaloonHomePage() {
     window.dispatchEvent(new CustomEvent('yt-toggle-play'));
   };
 
+  const handlePrev = () => {
+    window.dispatchEvent(new CustomEvent('yt-prev'));
+  };
+
+  const handleNext = () => {
+    window.dispatchEvent(new CustomEvent('yt-next'));
+  };
+
   return (
-    <div className="min-h-screen bg-[#0a0705] text-amber-100 flex flex-col items-center justify-between p-6 sm:p-12 relative overflow-hidden select-none">
-      {/* Background Subtle Ambient Glow */}
-      <div
-        className={`absolute w-96 h-96 rounded-full bg-amber-600/10 blur-3xl transition-opacity duration-1000 ${
-          audioState.isPlaying ? 'opacity-100 animate-pulse' : 'opacity-20'
-        }`}
-      />
+    <div className="min-h-screen text-amber-100 flex flex-col items-center justify-between p-6 sm:p-12 relative overflow-hidden select-none">
+      {/* 3. Bright Artistic Saloon Background */}
+      <SaloonArtBackground isPlaying={audioState.isPlaying} />
 
       {/* Hidden YouTube Iframe Audio Engine */}
       {playlist && (
@@ -118,7 +128,7 @@ export default function MinimalSaloonHomePage() {
 
       {/* 3. People who are online */}
       <header className="z-10 pt-4">
-        <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-amber-950/40 border border-amber-500/20 text-amber-300/90 text-xs font-semibold backdrop-blur-md shadow-lg">
+        <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-black/40 border border-amber-500/30 text-amber-200 text-xs font-semibold backdrop-blur-md shadow-xl">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -127,38 +137,68 @@ export default function MinimalSaloonHomePage() {
         </div>
       </header>
 
-      {/* Main Center Area: 1. Play Button & 2. Time */}
+      {/* Main Center Controls: 1. Play/Pause, Prev & Next Buttons & 2. Time */}
       <main className="z-10 flex flex-col items-center justify-center space-y-8 my-auto">
         
-        {/* Minimal Play / Pause Main Button */}
-        <button
-          onClick={togglePlay}
-          className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl relative group ${
-            audioState.isPlaying
-              ? 'bg-amber-400 text-black shadow-amber-500/40 scale-105'
-              : 'bg-amber-500/20 text-amber-300 border-2 border-amber-500/40 hover:border-amber-400 hover:bg-amber-500/30'
-          }`}
-          title={audioState.isPlaying ? 'Pause' : 'Play'}
-        >
-          {audioState.isPlaying ? (
-            <Pause className="w-12 h-12 sm:w-16 sm:h-16 fill-black" />
-          ) : (
-            <Play className="w-12 h-12 sm:w-16 sm:h-16 fill-amber-300 group-hover:fill-amber-200 ml-1 transition" />
-          )}
+        {/* Active Playlist Title Badge */}
+        {playlist && (
+          <div className="px-3.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold shadow-md">
+            {playlist.title}
+          </div>
+        )}
 
-          {/* Subtle Outer Vinyl Ring when Playing */}
-          {audioState.isPlaying && (
-            <div className="absolute inset-0 rounded-full border border-black/30 animate-ping opacity-20 pointer-events-none" />
-          )}
-        </button>
+        {/* Minimal Audio Controls Row: Prev, Play/Pause, Next */}
+        <div className="flex items-center space-x-6 sm:space-x-8">
+          
+          {/* Previous Button */}
+          <button
+            onClick={handlePrev}
+            className="p-3 sm:p-4 rounded-full bg-black/40 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 transition active:scale-90 shadow-lg hover:border-amber-400"
+            title="Previous Song"
+          >
+            <SkipBack className="w-6 h-6 sm:w-8 sm:h-8 fill-amber-300/30" />
+          </button>
+
+          {/* 1. Play / Pause Main Button */}
+          <button
+            onClick={togglePlay}
+            className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl relative group ${
+              audioState.isPlaying
+                ? 'bg-amber-400 text-black shadow-amber-500/50 scale-105'
+                : 'bg-amber-500/20 text-amber-300 border-2 border-amber-500/40 hover:border-amber-400 hover:bg-amber-500/30'
+            }`}
+            title={audioState.isPlaying ? 'Pause' : 'Play'}
+          >
+            {audioState.isPlaying ? (
+              <Pause className="w-12 h-12 sm:w-16 sm:h-16 fill-black" />
+            ) : (
+              <Play className="w-12 h-12 sm:w-16 sm:h-16 fill-amber-300 group-hover:fill-amber-200 ml-1 transition" />
+            )}
+
+            {/* Vinyl Glow Ring when Playing */}
+            {audioState.isPlaying && (
+              <div className="absolute inset-0 rounded-full border-2 border-black/30 animate-ping opacity-25 pointer-events-none" />
+            )}
+          </button>
+
+          {/* Next Button */}
+          <button
+            onClick={handleNext}
+            className="p-3 sm:p-4 rounded-full bg-black/40 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 transition active:scale-90 shadow-lg hover:border-amber-400"
+            title="Next Song"
+          >
+            <SkipForward className="w-6 h-6 sm:w-8 sm:h-8 fill-amber-300/30" />
+          </button>
+
+        </div>
 
         {/* 2. Track Time */}
         <div className="text-center space-y-1">
-          <div className="text-sm sm:text-base font-mono font-medium text-amber-300/80 tracking-wider">
+          <div className="text-base sm:text-lg font-mono font-bold text-amber-200 tracking-wider">
             {formatTime(audioState.currentTime)} / {formatTime(audioState.duration)}
           </div>
           {audioState.trackTitle && (
-            <p className="text-xs text-amber-400/60 max-w-xs truncate px-4">
+            <p className="text-xs text-amber-300/80 max-w-sm truncate px-4 font-medium">
               {audioState.trackTitle}
             </p>
           )}
@@ -173,10 +213,10 @@ export default function MinimalSaloonHomePage() {
           href={spotifyUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/30 text-emerald-300 text-xs font-semibold transition hover:scale-105 shadow-md"
+          className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/40 text-emerald-300 text-xs font-bold transition hover:scale-105 shadow-xl backdrop-blur-md"
         >
           <span>Spotify Playlist</span>
-          <ExternalLink className="w-3.5 h-3.5 opacity-75" />
+          <ExternalLink className="w-3.5 h-3.5 opacity-85" />
         </a>
 
         {/* 5. Link for youtube music playlist */}
@@ -184,10 +224,10 @@ export default function MinimalSaloonHomePage() {
           href={ytMusicUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-red-950/40 hover:bg-red-900/60 border border-red-500/30 text-red-300 text-xs font-semibold transition hover:scale-105 shadow-md"
+          className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-red-950/60 hover:bg-red-900/80 border border-red-500/40 text-red-300 text-xs font-bold transition hover:scale-105 shadow-xl backdrop-blur-md"
         >
           <span>YouTube Music</span>
-          <ExternalLink className="w-3.5 h-3.5 opacity-75" />
+          <ExternalLink className="w-3.5 h-3.5 opacity-85" />
         </a>
       </footer>
 
