@@ -2,7 +2,7 @@
 
 A production-ready, highly aesthetic nostalgic Tamil radio & saloon web application inspired by `saloon.wtf`. Bringing back the gold standard of 90s & 2000s Kollywood barber shop cassette hits, tea kadai melodies, and gaana specials into a continuous 24/7 web radio experience.
 
-![Tamil Deluxe Saloon Preview](https://images.unsplash.com/photo-1593720213428-28a5b9e94613?auto=format&fit=crop&w=1200&q=80)
+![Tamil Deluxe Saloon Preview]
 
 ---
 
