@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { savePlaybackState, loadPlaybackState, getCleanPlaylistId } from '@/lib/playbackState';
 
 declare global {
   interface Window {
@@ -39,8 +40,8 @@ interface YTPlayer {
   getPlaylist: () => string[];
   getPlaylistIndex: () => number;
   destroy: () => void;
-  loadPlaylist: (options: { listType: string; list: string; index?: number }) => void;
-  cuePlaylist: (options: { listType: string; list: string; index?: number }) => void;
+  loadPlaylist: (options: { listType: string; list: string; index?: number; startSeconds?: number }) => void;
+  cuePlaylist: (options: { listType: string; list: string; index?: number; startSeconds?: number }) => void;
 }
 
 export interface AudioEngineRef {
@@ -94,6 +95,45 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
   const [hasUserStarted, setHasUserStarted] = useState(false);
   const [isApiReady, setIsApiReady] = useState(false);
 
+  const trackIndexRef = useRef(trackIndex);
+  const currentTimeRef = useRef(currentTime);
+  const isPlayingRef = useRef(isPlaying);
+  const currentPlaylistIdRef = useRef(playlistId);
+
+  useEffect(() => { trackIndexRef.current = trackIndex; }, [trackIndex]);
+  useEffect(() => { currentTimeRef.current = currentTime; }, [currentTime]);
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+  useEffect(() => { currentPlaylistIdRef.current = playlistId; }, [playlistId]);
+
+  const persistCurrentState = useCallback(() => {
+    if (!currentPlaylistIdRef.current) return;
+    let cTime = currentTimeRef.current;
+    let tIdx = trackIndexRef.current;
+    if (playerRef.current?.getCurrentTime) {
+      try {
+        const t = playerRef.current.getCurrentTime();
+        if (typeof t === 'number' && !isNaN(t) && t >= 0) cTime = t;
+      } catch (e) {}
+    }
+    if (playerRef.current?.getPlaylistIndex) {
+      try {
+        const idx = playerRef.current.getPlaylistIndex();
+        if (typeof idx === 'number' && !isNaN(idx) && idx >= 0) tIdx = idx;
+      } catch (e) {}
+    }
+    savePlaybackState(currentPlaylistIdRef.current, tIdx, cTime, isPlayingRef.current);
+  }, []);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      persistCurrentState();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [persistCurrentState]);
+
   const onStateChangeRef = useRef(onStateChange);
   useEffect(() => {
     onStateChangeRef.current = onStateChange;
@@ -130,14 +170,15 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
     hasUserStarted,
   ]);
 
-
   // Sync state loop
   useEffect(() => {
     if (isPlaying && playerRef.current) {
       timerRef.current = setInterval(() => {
         try {
           if (playerRef.current?.getCurrentTime) {
-            setCurrentTime(playerRef.current.getCurrentTime() || 0);
+            const t = playerRef.current.getCurrentTime() || 0;
+            setCurrentTime(t);
+            currentTimeRef.current = t;
           }
           if (playerRef.current?.getDuration) {
             setDuration(playerRef.current.getDuration() || 0);
@@ -151,12 +192,15 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
             }
           }
           if (playerRef.current?.getPlaylistIndex) {
-            setTrackIndex(playerRef.current.getPlaylistIndex() || 0);
+            const idx = playerRef.current.getPlaylistIndex() || 0;
+            setTrackIndex(idx);
+            trackIndexRef.current = idx;
           }
           if (playerRef.current?.getPlaylist) {
             const list = playerRef.current.getPlaylist();
             if (list) setTotalTracks(list.length);
           }
+          persistCurrentState();
         } catch (e) {
           // Ignore polling errors during track transitions
         }
@@ -168,7 +212,7 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isPlaying]);
+  }, [isPlaying, persistCurrentState]);
 
   // Load YouTube Iframe API
   useEffect(() => {
@@ -196,9 +240,18 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
     playerContainer.id = elementId;
     containerRef.current.appendChild(playerContainer);
 
-    const cleanId = playlistId.includes('list=')
-      ? playlistId.split('list=')[1].split('&')[0]
-      : playlistId.trim();
+    const cleanId = getCleanPlaylistId(playlistId);
+    const savedState = loadPlaybackState(cleanId);
+    const initialIndex = savedState ? savedState.trackIndex : 0;
+    const initialTime = savedState ? savedState.currentTime : 0;
+    const initialWasPlaying = savedState ? savedState.isPlaying : false;
+
+    if (savedState) {
+      setTrackIndex(initialIndex);
+      setCurrentTime(initialTime);
+      trackIndexRef.current = initialIndex;
+      currentTimeRef.current = initialTime;
+    }
 
     playerRef.current = new window.YT!.Player(elementId, {
       height: '1',
@@ -206,6 +259,8 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
       playerVars: {
         listType: 'playlist',
         list: cleanId,
+        index: initialIndex,
+        startSeconds: Math.floor(initialTime),
         autoplay: 0,
         controls: 0,
         disablekb: 1,
@@ -218,6 +273,34 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
       events: {
         onReady: (event: { target: YTPlayer }) => {
           event.target.setVolume(volume);
+          if (initialIndex > 0 || initialTime > 0) {
+            try {
+              if (initialWasPlaying) {
+                event.target.loadPlaylist({
+                  listType: 'playlist',
+                  list: cleanId,
+                  index: initialIndex,
+                  startSeconds: Math.floor(initialTime),
+                });
+              } else {
+                event.target.cuePlaylist({
+                  listType: 'playlist',
+                  list: cleanId,
+                  index: initialIndex,
+                  startSeconds: Math.floor(initialTime),
+                });
+              }
+            } catch (e) {
+              if (event.target.seekTo && initialTime > 0) {
+                event.target.seekTo(initialTime, true);
+              }
+            }
+          }
+          if (initialWasPlaying) {
+            try {
+              event.target.playVideo();
+            } catch (e) {}
+          }
           try {
             if (event.target.getVideoData) {
               const data = event.target.getVideoData();
@@ -252,12 +335,16 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
 
             if (state === window.YT.PlayerState.PLAYING) {
               setIsPlaying(true);
+              isPlayingRef.current = true;
               setHasUserStarted(true);
+              persistCurrentState();
             } else if (
               state === window.YT.PlayerState.PAUSED ||
               state === window.YT.PlayerState.ENDED
             ) {
               setIsPlaying(false);
+              isPlayingRef.current = false;
+              persistCurrentState();
             }
           }
         },
@@ -272,18 +359,21 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
         playerRef.current = null;
       }
     };
-  }, [isApiReady, playlistId, volume]);
+  }, [isApiReady, playlistId, volume, persistCurrentState]);
 
   // Load new playlist when prop changes
   useEffect(() => {
     if (playerRef.current && playlistId && playerRef.current.loadPlaylist) {
-      const cleanId = playlistId.includes('list=')
-        ? playlistId.split('list=')[1].split('&')[0]
-        : playlistId.trim();
+      const cleanId = getCleanPlaylistId(playlistId);
+      const saved = loadPlaybackState(cleanId);
+      const targetIdx = saved ? saved.trackIndex : 0;
+      const targetTime = saved ? saved.currentTime : 0;
+
       playerRef.current.loadPlaylist({
         listType: 'playlist',
         list: cleanId,
-        index: 0,
+        index: targetIdx,
+        startSeconds: Math.floor(targetTime),
       });
     }
   }, [playlistId]);

@@ -1,5 +1,5 @@
 {
-  "activeOverrideIndex": 1,
+  "activeOverrideIndex": 0,
   "liveListenerBase": 48,
   "rows": [
     {
@@ -8,7 +8,8 @@
       "title": "Ilayaraja Hits",
       "youtubeId": "PLaZZmCjSdLDGAXN-W0vhh1EOncNte0y2D",
       "spotifyUrl": "https://open.spotify.com/playlist/37i9dQZF1DXa7aEa6s0nQe",
-      "ytMusicUrl": "https://music.youtube.com/playlist?list=PLaZZmCjSdLDGAXN-W0vhh1EOncNte0y2D"
+      "ytMusicUrl": "https://music.youtube.com/playlist?list=PLaZZmCjSdLDGAXN-W0vhh1EOncNte0y2D",
+      "isActive": true
     },
     {
       "id": "row-2",
@@ -16,7 +17,8 @@
       "title": "AR Rahman Hits",
       "youtubeId": "PLxIPumcDtzc3YzI-N28cFfwa5JBdxqH6j",
       "spotifyUrl": "https://open.spotify.com/playlist/37i9dQZF1DWYw4K5a5e5r5",
-      "ytMusicUrl": "https://music.youtube.com/playlist?list=PLxIPumcDtzc3YzI-N28cFfwa5JBdxqH6j"
+      "ytMusicUrl": "https://music.youtube.com/playlist?list=PLxIPumcDtzc3YzI-N28cFfwa5JBdxqH6j",
+      "isActive": true
     },
     {
       "id": "row-3",
@@ -24,7 +26,8 @@
       "title": "AR Rahman Romantic songs",
       "youtubeId": "RDCLAK5uy_lG9Y0ygyS7rido4vIJF0reMGFWunV1d2Y",
       "spotifyUrl": "https://open.spotify.com/playlist/37i9dQZF1DX4t2S1r0nQe",
-      "ytMusicUrl": "https://music.youtube.com/playlist?list=RDCLAK5uy_lG9Y0ygyS7rido4vIJF0reMGFWunV1d2Y"
+      "ytMusicUrl": "https://music.youtube.com/playlist?list=RDCLAK5uy_lG9Y0ygyS7rido4vIJF0reMGFWunV1d2Y",
+      "isActive": true
     },
     {
       "id": "row-4",
@@ -32,7 +35,8 @@
       "title": "Karthik Hits",
       "youtubeId": "PL2j1XMby9UdESuO6eO9BiOVKeXPBZTxih",
       "spotifyUrl": "https://open.spotify.com/playlist/37i9dQZF1DX3P2O1NnQe",
-      "ytMusicUrl": "https://music.youtube.com/playlist?list=PL2j1XMby9UdESuO6eO9BiOVKeXPBZTxih"
+      "ytMusicUrl": "https://music.youtube.com/playlist?list=PL2j1XMby9UdESuO6eO9BiOVKeXPBZTxih",
+      "isActive": true
     },
     {
       "id": "row-5",
@@ -40,7 +44,8 @@
       "title": "SPB Hits",
       "youtubeId": "RDCLAK5uy_lVybQKoNOO4cg5U3fNG2v7RLRbE4rltJM",
       "spotifyUrl": "https://open.spotify.com/playlist/37i9dQZF1DX1L2M3NnQe",
-      "ytMusicUrl": "https://music.youtube.com/playlist?list=RDCLAK5uy_lVybQKoNOO4cg5U3fNG2v7RLRbE4rltJM"
+      "ytMusicUrl": "https://music.youtube.com/playlist?list=RDCLAK5uy_lVybQKoNOO4cg5U3fNG2v7RLRbE4rltJM",
+      "isActive": true
     },
     {
       "id": "row-6",
@@ -48,7 +53,8 @@
       "title": "90's Hit songs",
       "youtubeId": "RDCLAK5uy_mTDSBgwllmWkoqoXafWZGZvlAAargVfJo",
       "spotifyUrl": "https://open.spotify.com/playlist/37i9dQZF1DX8X7Y6ZnQe",
-      "ytMusicUrl": "https://music.youtube.com/playlist?list=RDCLAK5uy_mTDSBgwllmWkoqoXafWZGZvlAAargVfJo"
+      "ytMusicUrl": "https://music.youtube.com/playlist?list=RDCLAK5uy_mTDSBgwllmWkoqoXafWZGZvlAAargVfJo",
+      "isActive": true
     },
     {
       "id": "row-7",
@@ -56,7 +62,8 @@
       "title": "90's kollywood songs",
       "youtubeId": "RDCLAK5uy_n-6deo45Lmg4QTpcrmpalSGb46Z6eWpc4",
       "spotifyUrl": "https://open.spotify.com/playlist/37i9dQZF1DX2l3m4nnQe",
-      "ytMusicUrl": "https://music.youtube.com/playlist?list=RDCLAK5uy_n-6deo45Lmg4QTpcrmpalSGb46Z6eWpc4"
+      "ytMusicUrl": "https://music.youtube.com/playlist?list=RDCLAK5uy_n-6deo45Lmg4QTpcrmpalSGb46Z6eWpc4",
+      "isActive": true
     },
     {
       "id": "row-8",
@@ -64,7 +71,8 @@
       "title": "2000's kollywood songs",
       "youtubeId": "RDCLAK5uy_m1eJBySLWvaO8-Xep8NPdZEPZPwo1jydA",
       "spotifyUrl": "https://open.spotify.com/playlist/37i9dQZF1DX6c7b8anQe",
-      "ytMusicUrl": "https://music.youtube.com/playlist?list=RDCLAK5uy_m1eJBySLWvaO8-Xep8NPdZEPZPwo1jydA"
+      "ytMusicUrl": "https://music.youtube.com/playlist?list=RDCLAK5uy_m1eJBySLWvaO8-Xep8NPdZEPZPwo1jydA",
+      "isActive": true
     },
     {
       "id": "row-9",
@@ -72,7 +80,8 @@
       "title": "Random sleep songs",
       "youtubeId": "PLpa4S1zG4My1NM9WEu7yF0vZpZfWLdFyZ",
       "spotifyUrl": "https://open.spotify.com/playlist/37i9dQZF1DX1o2n3mnQe",
-      "ytMusicUrl": "https://music.youtube.com/playlist?list=PLpa4S1zG4My1NM9WEu7yF0vZpZfWLdFyZ"
+      "ytMusicUrl": "https://music.youtube.com/playlist?list=PLpa4S1zG4My1NM9WEu7yF0vZpZfWLdFyZ",
+      "isActive": true
     },
     {
       "id": "row-10",
@@ -80,7 +89,8 @@
       "title": "Harris Jayaraj songs",
       "youtubeId": "PL5eRVqW0qoEBfDEznCMCfiE5mpU12gSZg",
       "spotifyUrl": "https://open.spotify.com/playlist/37i9dQZF1DX3l2m1nnQe",
-      "ytMusicUrl": "https://music.youtube.com/playlist?list=PL5eRVqW0qoEBfDEznCMCfiE5mpU12gSZg"
+      "ytMusicUrl": "https://music.youtube.com/playlist?list=PL5eRVqW0qoEBfDEznCMCfiE5mpU12gSZg",
+      "isActive": true
     }
   ]
 }

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getStorageData } from '@/lib/storage';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const data = getStorageData();
@@ -44,17 +47,24 @@ export async function GET() {
       featuredPlaylist = pool[selectedIndex];
     }
 
-    return NextResponse.json({
-      dayOfYear,
-      todayIndex: selectedIndex,
-      isOverride,
-      activeCount: activeRows.length,
-      featuredPlaylist,
-      playlists: allRows,
-      settings: {
-        liveListenerBase: data.liveListenerBase || 48,
+    return NextResponse.json(
+      {
+        dayOfYear,
+        todayIndex: selectedIndex,
+        isOverride,
+        activeCount: activeRows.length,
+        featuredPlaylist,
+        playlists: allRows,
+        settings: {
+          liveListenerBase: data.liveListenerBase || 48,
+        },
       },
-    });
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        },
+      }
+    );
   } catch (error) {
     console.error('Public radio API error:', error);
     return NextResponse.json(

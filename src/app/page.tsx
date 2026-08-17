@@ -62,7 +62,7 @@ export default function MinimalSaloonHomePage() {
   useEffect(() => {
     async function fetchRadio() {
       try {
-        const res = await fetch('/api/public/radio');
+        const res = await fetch('/api/public/radio', { cache: 'no-store' });
         if (res.ok) {
           const json: RadioResponse = await res.json();
           setData(json);
