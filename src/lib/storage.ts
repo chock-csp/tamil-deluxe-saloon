@@ -190,10 +190,13 @@ export async function getStorageDataAsync(): Promise<PlaylistsStorageSchema> {
       if (res.ok) {
         const data = await res.json();
         if (data && data.result) {
-          const parsed: PlaylistsStorageSchema =
-            typeof data.result === 'string'
-              ? JSON.parse(data.result)
-              : data.result;
+          let parsed: any = data.result;
+          if (typeof parsed === 'string') {
+            try { parsed = JSON.parse(parsed); } catch (e) {}
+          }
+          if (typeof parsed === 'string') {
+            try { parsed = JSON.parse(parsed); } catch (e) {}
+          }
           if (parsed && Array.isArray(parsed.rows) && parsed.rows.length > 0) {
             return sanitizeSchema(parsed);
           }
@@ -299,7 +302,7 @@ export async function saveStorageDataAsync(
           Authorization: `Bearer ${kv.token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(JSON.stringify(updated)),
+        body: JSON.stringify(updated),
         cache: 'no-store',
       });
     } catch (e) {
