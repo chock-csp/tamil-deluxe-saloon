@@ -133,6 +133,7 @@ export default function AdminPage() {
           activeOverrideIndex: null,
         }),
       });
+      await fetchRowsData();
       showNotice('Playlist of the Day reset to Automatic Rotation (Day % Active Rows)');
     } catch (e) {
       console.error('Failed to reset override:', e);
