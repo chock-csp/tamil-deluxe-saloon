@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminSession } from '@/lib/auth';
-import { getStorageData, saveStorageData } from '@/lib/storage';
+import { getStorageDataAsync, saveStorageDataAsync } from '@/lib/storage';
 
 export async function GET() {
   const session = await getAdminSession();
@@ -8,7 +8,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const data = getStorageData();
+  const data = await getStorageDataAsync();
   return NextResponse.json({ playlists: data.rows });
 }
 
@@ -33,7 +33,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Rows array is required' }, { status: 400 });
     }
 
-    const updated = saveStorageData({ rows: incomingRows });
+    const updated = await saveStorageDataAsync({ rows: incomingRows });
     return NextResponse.json({ success: true, playlists: updated.rows });
   } catch (error) {
     console.error('API PUT error:', error);

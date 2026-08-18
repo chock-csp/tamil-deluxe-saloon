@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminSession } from '@/lib/auth';
-import { getStorageData, saveStorageData } from '@/lib/storage';
+import { getStorageDataAsync, saveStorageDataAsync } from '@/lib/storage';
 import { getOverrideFromEnv } from '@/lib/rotation';
 
 export async function GET() {
@@ -9,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const data = getStorageData();
+  const data = await getStorageDataAsync();
   const envOverride = getOverrideFromEnv(data.rows || []);
   const effectiveIndex =
     envOverride !== null
@@ -44,7 +44,7 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const { activeOverridePlaylistId, activeOverrideIndex } = body;
 
-    const data = getStorageData();
+    const data = await getStorageDataAsync();
     let newIndex: number | null = null;
 
     if (typeof activeOverrideIndex === 'number') {
@@ -54,7 +54,7 @@ export async function PUT(request: Request) {
       if (idx !== -1) newIndex = idx;
     }
 
-    const updated = saveStorageData({ activeOverrideIndex: newIndex });
+    const updated = await saveStorageDataAsync({ activeOverrideIndex: newIndex });
 
     return NextResponse.json({
       settings: {

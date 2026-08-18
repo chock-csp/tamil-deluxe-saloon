@@ -122,6 +122,32 @@ export default function AdminPage() {
     setRows(updated);
   };
 
+  const handleSetOverride = async (rowId: string, index: number) => {
+    const isCurrentlyOverride = activeOverrideId === rowId;
+    const newOverrideId = isCurrentlyOverride ? null : rowId;
+    const newOverrideIndex = isCurrentlyOverride ? null : index;
+
+    setActiveOverrideId(newOverrideId);
+    try {
+      await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          activeOverridePlaylistId: newOverrideId,
+          activeOverrideIndex: newOverrideIndex,
+        }),
+      });
+      await fetchRowsData();
+      showNotice(
+        newOverrideId
+          ? `Set "${rows[index]?.title || 'Playlist'}" as Playlist of the Day!`
+          : 'Playlist of the Day reset to Automatic Daily Rotation'
+      );
+    } catch (e) {
+      console.error('Failed to set override:', e);
+    }
+  };
+
   const handleResetPlaylistOfDay = async () => {
     setActiveOverrideId(null);
     try {
@@ -435,7 +461,7 @@ export default function AdminPage() {
                     {/* Controls: Set as Playlist of the Day & Active Toggle */}
                     <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => setActiveOverrideId(isOverride ? null : row.id)}
+                        onClick={() => handleSetOverride(row.id, idx)}
                         className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border flex items-center space-x-1.5 ${
                           isOverride
                             ? 'bg-amber-500 text-black border-amber-400 shadow-md'

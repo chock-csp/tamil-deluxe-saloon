@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getStorageData } from '@/lib/storage';
+import { getStorageDataAsync } from '@/lib/storage';
 import { getOverrideFromEnv } from '@/lib/rotation';
 
 export const dynamic = 'force-dynamic';
@@ -7,7 +7,7 @@ export const revalidate = 0;
 
 export async function GET() {
   try {
-    const data = getStorageData();
+    const data = await getStorageDataAsync();
     const allRows = data.rows || [];
 
     if (allRows.length === 0) {

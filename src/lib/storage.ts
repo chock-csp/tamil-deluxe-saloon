@@ -28,6 +28,22 @@ function cleanYoutubeId(input: string): string {
   return id;
 }
 
+function getKvConfig() {
+  if (typeof process === 'undefined' || !process.env) return null;
+  const url =
+    process.env.KV_REST_API_URL ||
+    process.env.VERCEL_KV_REST_API_URL ||
+    process.env.UPSTASH_REDIS_REST_URL;
+  const token =
+    process.env.KV_REST_API_TOKEN ||
+    process.env.VERCEL_KV_REST_API_TOKEN ||
+    process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (url && token) {
+    return { url: url.trim().replace(/\/$/, ''), token: token.trim() };
+  }
+  return null;
+}
+
 const defaultRows: Omit<PlaylistRowItem, 'id'>[] = [
   {
     order: 0,
@@ -111,30 +127,40 @@ const defaultRows: Omit<PlaylistRowItem, 'id'>[] = [
   },
 ];
 
+function sanitizeSchema(json: PlaylistsStorageSchema): PlaylistsStorageSchema {
+  const rows = Array.isArray(json.rows) ? json.rows : [];
+  const sanitizedRows = rows.map((row, idx) => {
+    const yId = cleanYoutubeId(row.youtubeId || '');
+    return {
+      id: `row-${idx + 1}`,
+      order: idx,
+      title: row.title || `Row ${idx + 1}`,
+      youtubeId: yId,
+      spotifyUrl: row.spotifyUrl || 'https://open.spotify.com',
+      ytMusicUrl:
+        row.ytMusicUrl ||
+        (yId
+          ? `https://music.youtube.com/playlist?list=${yId}`
+          : 'https://music.youtube.com'),
+      isActive: row.isActive !== undefined ? Boolean(row.isActive) : true,
+    };
+  });
+
+  return {
+    activeOverrideIndex:
+      json.activeOverrideIndex !== undefined ? json.activeOverrideIndex : null,
+    liveListenerBase: json.liveListenerBase || 48,
+    rows: sanitizedRows,
+  };
+}
+
 export function getStorageData(): PlaylistsStorageSchema {
   try {
     if (fs.existsSync(DATA_FILE_PATH)) {
       const content = fs.readFileSync(DATA_FILE_PATH, 'utf-8');
       const json: PlaylistsStorageSchema = JSON.parse(content);
       if (json && Array.isArray(json.rows) && json.rows.length > 0) {
-        // Ensure IDs, YouTube URLs & isActive status are sanitized
-        json.rows = json.rows.map((row, idx) => {
-          const yId = cleanYoutubeId(row.youtubeId || '');
-          return {
-            id: `row-${idx + 1}`,
-            order: idx,
-            title: row.title || `Row ${idx + 1}`,
-            youtubeId: yId,
-            spotifyUrl: row.spotifyUrl || 'https://open.spotify.com',
-            ytMusicUrl:
-              row.ytMusicUrl ||
-              (yId
-                ? `https://music.youtube.com/playlist?list=${yId}`
-                : 'https://music.youtube.com'),
-            isActive: row.isActive !== undefined ? Boolean(row.isActive) : true,
-          };
-        });
-        return json;
+        return sanitizeSchema(json);
       }
     }
   } catch (error) {
@@ -149,6 +175,36 @@ export function getStorageData(): PlaylistsStorageSchema {
 
   saveStorageData(defaultSchema);
   return defaultSchema;
+}
+
+export async function getStorageDataAsync(): Promise<PlaylistsStorageSchema> {
+  const kv = getKvConfig();
+  if (kv) {
+    try {
+      const res = await fetch(`${kv.url}/get/saloon_playlists_schema`, {
+        headers: {
+          Authorization: `Bearer ${kv.token}`,
+        },
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.result) {
+          const parsed: PlaylistsStorageSchema =
+            typeof data.result === 'string'
+              ? JSON.parse(data.result)
+              : data.result;
+          if (parsed && Array.isArray(parsed.rows) && parsed.rows.length > 0) {
+            return sanitizeSchema(parsed);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Vercel KV read error, falling back to local storage:', e);
+    }
+  }
+
+  return getStorageData();
 }
 
 export function saveStorageData(data: Partial<PlaylistsStorageSchema>): PlaylistsStorageSchema {
@@ -195,5 +251,62 @@ export function saveStorageData(data: Partial<PlaylistsStorageSchema>): Playlist
     console.error('Failed to write playlists.json:', error);
   }
 
+  return updated;
+}
+
+export async function saveStorageDataAsync(
+  data: Partial<PlaylistsStorageSchema>
+): Promise<PlaylistsStorageSchema> {
+  const current = await getStorageDataAsync();
+
+  const newRows = Array.isArray(data.rows)
+    ? data.rows.slice(0, 10).map((r, idx) => {
+        const yId = cleanYoutubeId(r.youtubeId || '');
+        return {
+          id: `row-${idx + 1}`,
+          order: idx,
+          title: r.title || `Row ${idx + 1}`,
+          youtubeId: yId,
+          spotifyUrl: r.spotifyUrl || 'https://open.spotify.com',
+          ytMusicUrl:
+            r.ytMusicUrl ||
+            (yId
+              ? `https://music.youtube.com/playlist?list=${yId}`
+              : 'https://music.youtube.com'),
+          isActive: r.isActive !== undefined ? Boolean(r.isActive) : true,
+        };
+      })
+    : current.rows;
+
+  const updated: PlaylistsStorageSchema = {
+    activeOverrideIndex:
+      data.activeOverrideIndex !== undefined
+        ? data.activeOverrideIndex
+        : current.activeOverrideIndex,
+    liveListenerBase:
+      data.liveListenerBase !== undefined
+        ? data.liveListenerBase
+        : current.liveListenerBase,
+    rows: newRows,
+  };
+
+  const kv = getKvConfig();
+  if (kv) {
+    try {
+      await fetch(`${kv.url}/set/saloon_playlists_schema`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${kv.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(JSON.stringify(updated)),
+        cache: 'no-store',
+      });
+    } catch (e) {
+      console.error('Vercel KV write error:', e);
+    }
+  }
+
+  saveStorageData(updated);
   return updated;
 }
