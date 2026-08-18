@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminSession } from '@/lib/auth';
 import { getStorageData, saveStorageData } from '@/lib/storage';
+import { getOverrideFromEnv } from '@/lib/rotation';
 
 export async function GET() {
   const session = await getAdminSession();
@@ -9,15 +10,25 @@ export async function GET() {
   }
 
   const data = getStorageData();
+  const envOverride = getOverrideFromEnv(data.rows || []);
+  const effectiveIndex =
+    envOverride !== null
+      ? envOverride.index
+      : (data.activeOverrideIndex !== null && data.activeOverrideIndex !== undefined
+          ? data.activeOverrideIndex
+          : null);
+
   const activeOverrideRow =
-    data.activeOverrideIndex !== null && data.activeOverrideIndex !== undefined
-      ? data.rows[data.activeOverrideIndex]
+    effectiveIndex !== null && effectiveIndex >= 0 && data.rows[effectiveIndex]
+      ? data.rows[effectiveIndex]
       : null;
 
   return NextResponse.json({
     settings: {
       activeOverridePlaylistId: activeOverrideRow?.id || null,
-      activeOverrideIndex: data.activeOverrideIndex,
+      activeOverrideIndex: effectiveIndex,
+      isEnvOverride: envOverride !== null,
+      envOverrideSource: envOverride?.source || null,
       liveListenerBase: data.liveListenerBase,
     },
   });

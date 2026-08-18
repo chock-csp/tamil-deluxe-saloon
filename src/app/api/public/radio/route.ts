@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getStorageData } from '@/lib/storage';
+import { getOverrideFromEnv } from '@/lib/rotation';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -31,19 +32,29 @@ export async function GET() {
     let featuredPlaylist = pool[0];
     let isOverride = false;
     let selectedIndex = dayOfYear % pool.length;
+    let overrideSource: string | null = null;
 
-    if (
+    // 1. Check process.env for PLAYLIST_OVERRIDE_INDEX or PLAYLIST_OVERRIDE_ID
+    const envOverride = getOverrideFromEnv(allRows);
+
+    if (envOverride) {
+      featuredPlaylist = allRows[envOverride.index];
+      isOverride = true;
+      selectedIndex = envOverride.index;
+      overrideSource = envOverride.source;
+    } else if (
       data.activeOverrideIndex !== null &&
       data.activeOverrideIndex !== undefined &&
       data.activeOverrideIndex >= 0 &&
       data.activeOverrideIndex < allRows.length
     ) {
-      // Manual admin override
+      // Manual admin override from storage
       featuredPlaylist = allRows[data.activeOverrideIndex];
       isOverride = true;
       selectedIndex = data.activeOverrideIndex;
+      overrideSource = 'json_storage';
     } else {
-      // Algorithmic selection from active playlists pool (dayOfYear % pool.length)
+      // Algorithmic daily selection from active playlists pool (dayOfYear % pool.length)
       featuredPlaylist = pool[selectedIndex];
     }
 
@@ -52,6 +63,7 @@ export async function GET() {
         dayOfYear,
         todayIndex: selectedIndex,
         isOverride,
+        overrideSource,
         activeCount: activeRows.length,
         featuredPlaylist,
         playlists: allRows,
