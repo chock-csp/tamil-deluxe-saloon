@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAdminSession } from '@/lib/auth';
+import { getAdminSession, requireAdminWithCsrf, requireJsonContentType } from '@/lib/auth';
 import { getStorageDataAsync, saveStorageDataAsync } from '@/lib/storage';
 import { getOverrideFromEnv } from '@/lib/rotation';
 
@@ -35,7 +35,10 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const session = await getAdminSession();
+  const ctError = requireJsonContentType(request);
+  if (ctError) return ctError;
+
+  const session = await requireAdminWithCsrf(request);
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

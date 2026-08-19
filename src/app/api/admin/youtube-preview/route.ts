@@ -14,9 +14,15 @@ export async function GET(request: Request) {
     id = id.split('list=')[1].split('&')[0];
   }
 
-  if (!id) {
+  // Allow only characters that appear in real YouTube playlist IDs
+  const sanitizedId = id.replace(/[^A-Za-z0-9_-]/g, '');
+
+  if (!sanitizedId) {
     return NextResponse.json({ error: 'YouTube playlist ID or URL required' }, { status: 400 });
   }
+
+  // Reuse sanitized id from here on
+  id = sanitizedId;
 
   try {
     // Attempt oEmbed API for YouTube Playlist
@@ -35,7 +41,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       youtubeId: id,
-      title: `Tamil Hits Playlist (${id.substring(0, 8)}...)`,
+      title: `Tamil Hits Playlist (${id.substring(0, 8)}…)`,
       authorName: 'Tamil Deluxe Saloon',
       thumbnailUrl: `https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=600&q=80`,
     });

@@ -24,6 +24,9 @@ export default function AdminPage() {
   const [loginError, setLoginError] = useState('');
   const [loggingIn, setLoggingIn] = useState(false);
 
+  // CSRF token — obtained from login or /api/auth/me response
+  const [csrfToken, setCsrfToken] = useState<string | null>(null);
+
   // Dashboard state
   const [rows, setRows] = useState<PlaylistRow[]>([]);
   const [activeOverrideId, setActiveOverrideId] = useState<string | null>(null);
@@ -36,6 +39,8 @@ export default function AdminPage() {
       try {
         const meRes = await fetch('/api/auth/me');
         if (meRes.ok) {
+          const meData = await meRes.json();
+          if (meData.csrfToken) setCsrfToken(meData.csrfToken);
           setIsAuthenticated(true);
           await fetchRowsData();
         } else {
@@ -90,6 +95,7 @@ export default function AdminPage() {
         return;
       }
 
+      if (data.csrfToken) setCsrfToken(data.csrfToken);
       setIsAuthenticated(true);
       await fetchRowsData();
     } catch (err) {
@@ -122,6 +128,11 @@ export default function AdminPage() {
     setRows(updated);
   };
 
+  const adminHeaders = () => ({
+    'Content-Type': 'application/json',
+    ...(csrfToken ? { 'x-admin-csrf-token': csrfToken } : {}),
+  });
+
   const handleSetOverride = async (rowId: string, index: number) => {
     const isCurrentlyOverride = activeOverrideId === rowId;
     const newOverrideId = isCurrentlyOverride ? null : rowId;
@@ -131,7 +142,7 @@ export default function AdminPage() {
     try {
       await fetch('/api/admin/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({
           activeOverridePlaylistId: newOverrideId,
           activeOverrideIndex: newOverrideIndex,
@@ -153,7 +164,7 @@ export default function AdminPage() {
     try {
       await fetch('/api/admin/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({
           activeOverridePlaylistId: null,
           activeOverrideIndex: null,
@@ -172,7 +183,7 @@ export default function AdminPage() {
       // 1. Save rows array to JSON storage
       const pRes = await fetch('/api/admin/playlists', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ rows }),
       });
 
@@ -191,7 +202,7 @@ export default function AdminPage() {
       const activeIndex = rows.findIndex((r) => r.id === activeOverrideId);
       await fetch('/api/admin/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({
           activeOverridePlaylistId: activeOverrideId,
           activeOverrideIndex: activeIndex !== -1 ? activeIndex : null,

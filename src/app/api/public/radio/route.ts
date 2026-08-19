@@ -58,15 +58,33 @@ export async function GET() {
       featuredPlaylist = pool[selectedIndex];
     }
 
+    // Strip internal fields (id, isActive) before sending to public callers
+    const publicPlaylist = featuredPlaylist
+      ? {
+          order: featuredPlaylist.order,
+          title: featuredPlaylist.title,
+          youtubeId: featuredPlaylist.youtubeId,
+          spotifyUrl: featuredPlaylist.spotifyUrl,
+          ytMusicUrl: featuredPlaylist.ytMusicUrl,
+        }
+      : null;
+
+    const publicPlaylists = allRows.map((r) => ({
+      order: r.order,
+      title: r.title,
+      youtubeId: r.youtubeId,
+      spotifyUrl: r.spotifyUrl,
+      ytMusicUrl: r.ytMusicUrl,
+    }));
+
     return NextResponse.json(
       {
         dayOfYear,
         todayIndex: selectedIndex,
         isOverride,
-        overrideSource,
         activeCount: activeRows.length,
-        featuredPlaylist,
-        playlists: allRows,
+        featuredPlaylist: publicPlaylist,
+        playlists: publicPlaylists,
         settings: {
           liveListenerBase: data.liveListenerBase || 48,
         },

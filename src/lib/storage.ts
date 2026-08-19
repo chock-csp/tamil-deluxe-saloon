@@ -25,7 +25,43 @@ function cleanYoutubeId(input: string): string {
   if (id.includes('list=')) {
     id = id.split('list=')[1].split('&')[0];
   }
-  return id;
+  // Allow only characters that appear in real YouTube playlist IDs
+  return id.replace(/[^A-Za-z0-9_-]/g, '');
+}
+
+/**
+ * Allows only https:// URLs pointing to known music/playlist domains.
+ * Rejects javascript: URLs and other injection vectors.
+ */
+function sanitizePlaylistUrl(input: string, fallback: string): string {
+  if (!input) return fallback;
+  try {
+    const url = new URL(input.trim());
+    const allowed = [
+      'open.spotify.com',
+      'music.youtube.com',
+      'www.youtube.com',
+      'youtube.com',
+      'spotify.com',
+    ];
+    if (url.protocol !== 'https:') return fallback;
+    if (!allowed.some((host) => url.hostname === host || url.hostname.endsWith('.' + host))) {
+      return fallback;
+    }
+    return url.toString();
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Strips dangerous characters from a playlist title.
+ * Allows unicode (including Tamil script) but removes control characters.
+ */
+function sanitizeTitle(input: string, fallback: string): string {
+  if (typeof input !== 'string' || input.trim() === '') return fallback;
+  // Remove ASCII control characters and null bytes
+  return input.replace(/[\x00-\x1F\x7F]/g, '').slice(0, 200);
 }
 
 function getKvConfig() {
@@ -216,17 +252,16 @@ export function saveStorageData(data: Partial<PlaylistsStorageSchema>): Playlist
   const newRows = Array.isArray(data.rows)
     ? data.rows.slice(0, 10).map((r, idx) => {
         const yId = cleanYoutubeId(r.youtubeId || '');
+        const defaultYtMusicUrl = yId
+          ? `https://music.youtube.com/playlist?list=${yId}`
+          : 'https://music.youtube.com';
         return {
           id: `row-${idx + 1}`,
           order: idx,
-          title: r.title || `Row ${idx + 1}`,
+          title: sanitizeTitle(r.title, `Row ${idx + 1}`),
           youtubeId: yId,
-          spotifyUrl: r.spotifyUrl || 'https://open.spotify.com',
-          ytMusicUrl:
-            r.ytMusicUrl ||
-            (yId
-              ? `https://music.youtube.com/playlist?list=${yId}`
-              : 'https://music.youtube.com'),
+          spotifyUrl: sanitizePlaylistUrl(r.spotifyUrl, 'https://open.spotify.com'),
+          ytMusicUrl: sanitizePlaylistUrl(r.ytMusicUrl, defaultYtMusicUrl),
           isActive: r.isActive !== undefined ? Boolean(r.isActive) : true,
         };
       })
@@ -265,17 +300,16 @@ export async function saveStorageDataAsync(
   const newRows = Array.isArray(data.rows)
     ? data.rows.slice(0, 10).map((r, idx) => {
         const yId = cleanYoutubeId(r.youtubeId || '');
+        const defaultYtMusicUrl = yId
+          ? `https://music.youtube.com/playlist?list=${yId}`
+          : 'https://music.youtube.com';
         return {
           id: `row-${idx + 1}`,
           order: idx,
-          title: r.title || `Row ${idx + 1}`,
+          title: sanitizeTitle(r.title, `Row ${idx + 1}`),
           youtubeId: yId,
-          spotifyUrl: r.spotifyUrl || 'https://open.spotify.com',
-          ytMusicUrl:
-            r.ytMusicUrl ||
-            (yId
-              ? `https://music.youtube.com/playlist?list=${yId}`
-              : 'https://music.youtube.com'),
+          spotifyUrl: sanitizePlaylistUrl(r.spotifyUrl, 'https://open.spotify.com'),
+          ytMusicUrl: sanitizePlaylistUrl(r.ytMusicUrl, defaultYtMusicUrl),
           isActive: r.isActive !== undefined ? Boolean(r.isActive) : true,
         };
       })
@@ -313,3 +347,15 @@ export async function saveStorageDataAsync(
   saveStorageData(updated);
   return updated;
 }
+
+// ---------------------------------------------------------------------------
+// Test-only exports (tree-shaken in production builds)
+// ---------------------------------------------------------------------------
+export const sanitizePlaylistUrlForTest = sanitizePlaylistUrl;
+export const sanitizeYoutubeIdForTest = (input: string): string => {
+  let id = input.trim();
+  if (id.includes('list=')) {
+    id = id.split('list=')[1].split('&')[0];
+  }
+  return id.replace(/[^A-Za-z0-9_-]/g, '');
+};
