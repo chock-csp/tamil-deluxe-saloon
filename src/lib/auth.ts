@@ -3,18 +3,31 @@ import { cookies, headers } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
-if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
-  throw new Error(
-    'JWT_SECRET environment variable is not set. ' +
-    'Set a strong random secret before deploying to production.'
-  );
-}
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'tamil-deluxe-saloon-super-secret-jwt-key-90s-hits-DO-NOT-USE-IN-PROD'
-);
+const DEV_JWT_FALLBACK =
+  'tamil-deluxe-saloon-super-secret-jwt-key-90s-hits-DO-NOT-USE-IN-PROD';
 
 const COOKIE_NAME = 'saloon_admin_session';
+
+/**
+ * Resolve the JWT signing key lazily.
+ * Must NOT throw at module import time: `next build` sets NODE_ENV=production
+ * while collecting route config, and env vars may only exist at runtime (Vercel).
+ */
+function getJwtSecretKey(): Uint8Array {
+  const secret = process.env.JWT_SECRET;
+  if (secret) {
+    return new TextEncoder().encode(secret);
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'JWT_SECRET environment variable is not set. ' +
+        'Set a strong random secret before deploying to production.'
+    );
+  }
+
+  return new TextEncoder().encode(DEV_JWT_FALLBACK);
+}
 
 export interface AdminJwtPayload {
   sub: string;
@@ -36,12 +49,12 @@ export async function signAdminToken(adminId: string, username: string): Promise
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
-    .sign(JWT_SECRET);
+    .sign(getJwtSecretKey());
 }
 
 export async function verifyAdminToken(token: string): Promise<AdminJwtPayload | null> {
   try {
-    const verified = await jwtVerify(token, JWT_SECRET);
+    const verified = await jwtVerify(token, getJwtSecretKey());
     return verified.payload as unknown as AdminJwtPayload;
   } catch (error) {
     return null;
@@ -77,7 +90,7 @@ export async function clearAdminSessionCookie() {
  */
 export function deriveCsrfToken(sessionToken: string): string {
   return crypto
-    .createHmac('sha256', JWT_SECRET)
+    .createHmac('sha256', getJwtSecretKey())
     .update(sessionToken)
     .digest('hex');
 }
