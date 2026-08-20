@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { hashPassword, verifyPassword, signAdminToken, verifyAdminToken } from '../src/lib/auth';
 
 describe('Admin Authentication Unit Tests', () => {
@@ -34,5 +34,47 @@ describe('Admin Authentication Unit Tests', () => {
     const invalidToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid.signature';
     const payload = await verifyAdminToken(invalidToken);
     expect(payload).toBeNull();
+  });
+});
+
+describe('JWT_SECRET production build safety', () => {
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalJwt = process.env.JWT_SECRET;
+
+  function setNodeEnv(value: string | undefined) {
+    Object.defineProperty(process.env, 'NODE_ENV', {
+      value,
+      configurable: true,
+      writable: true,
+      enumerable: true,
+    });
+  }
+
+  afterEach(() => {
+    setNodeEnv(originalNodeEnv);
+    if (originalJwt === undefined) {
+      delete process.env.JWT_SECRET;
+    } else {
+      process.env.JWT_SECRET = originalJwt;
+    }
+    vi.resetModules();
+  });
+
+  it('should allow importing auth module in production without JWT_SECRET (build-safe)', async () => {
+    delete process.env.JWT_SECRET;
+    setNodeEnv('production');
+    vi.resetModules();
+
+    // Must not throw at import / module evaluation time (next build collects routes).
+    await expect(import('../src/lib/auth')).resolves.toBeTruthy();
+  });
+
+  it('should throw at runtime when signing without JWT_SECRET in production', async () => {
+    delete process.env.JWT_SECRET;
+    setNodeEnv('production');
+    vi.resetModules();
+
+    const auth = await import('../src/lib/auth');
+    await expect(auth.signAdminToken('id', 'admin')).rejects.toThrow(/JWT_SECRET/);
   });
 });
