@@ -18,6 +18,17 @@ export const metadata: Metadata = {
     'Tamil Deluxe Saloon',
     'Tea Kadai Songs',
   ],
+  applicationName: 'Tamil Deluxe Saloon',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Tamil Saloon',
+  },
+  other: {
+    // Helps some Android browsers treat the page as a media app
+    'mobile-web-app-capable': 'yes',
+  },
   openGraph: {
     title: 'Tamil Deluxe Saloon - தமிழ் டீ கடை & சலூன் 90s/2000s Hits 💈☕',
     description:

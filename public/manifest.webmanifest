@@ -1,0 +1,25 @@
+{
+  "name": "Tamil Deluxe Saloon",
+  "short_name": "Tamil Saloon",
+  "description": "Nostalgic 24/7 Tamil radio — 90s & 2000s Kollywood hits",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#130a06",
+  "theme_color": "#130a06",
+  "lang": "ta",
+  "categories": ["music", "entertainment"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
