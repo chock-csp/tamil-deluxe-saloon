@@ -2,6 +2,12 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { savePlaybackState, loadPlaybackState, getCleanPlaylistId } from '@/lib/playbackState';
+import {
+  bindMediaSessionHandlers,
+  setMediaSessionPlaybackState,
+  setMediaSessionPositionState,
+  updateMediaSessionMetadata,
+} from '@/lib/mediaSession';
 
 declare global {
   interface Window {
@@ -97,13 +103,48 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
 
   const trackIndexRef = useRef(trackIndex);
   const currentTimeRef = useRef(currentTime);
+  const durationRef = useRef(duration);
   const isPlayingRef = useRef(isPlaying);
+  const wantPlayingRef = useRef(false);
   const currentPlaylistIdRef = useRef(playlistId);
+  const trackTitleRef = useRef(trackTitle);
+  const artistNameRef = useRef(artistName);
+  const videoIdRef = useRef(videoId);
 
   useEffect(() => { trackIndexRef.current = trackIndex; }, [trackIndex]);
   useEffect(() => { currentTimeRef.current = currentTime; }, [currentTime]);
+  useEffect(() => { durationRef.current = duration; }, [duration]);
   useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
   useEffect(() => { currentPlaylistIdRef.current = playlistId; }, [playlistId]);
+  useEffect(() => { trackTitleRef.current = trackTitle; }, [trackTitle]);
+  useEffect(() => { artistNameRef.current = artistName; }, [artistName]);
+  useEffect(() => { videoIdRef.current = videoId; }, [videoId]);
+
+  const syncMediaSession = useCallback(() => {
+    const artworkUrl = videoIdRef.current
+      ? `https://img.youtube.com/vi/${videoIdRef.current}/hqdefault.jpg`
+      : undefined;
+    updateMediaSessionMetadata({
+      title: trackTitleRef.current || 'Tamil Deluxe Saloon Radio',
+      artist: artistNameRef.current || 'Tamil Radio',
+      album: 'Tamil Deluxe Saloon',
+      artworkUrl,
+    });
+    setMediaSessionPlaybackState(wantPlayingRef.current || isPlayingRef.current ? 'playing' : 'paused');
+    setMediaSessionPositionState({
+      duration: durationRef.current,
+      position: currentTimeRef.current,
+    });
+  }, []);
+
+  const tryResumePlayback = useCallback(() => {
+    if (!wantPlayingRef.current || !playerRef.current?.playVideo) return;
+    try {
+      playerRef.current.playVideo();
+    } catch {
+      // Browser may block resume without a fresh user gesture
+    }
+  }, []);
 
   const persistCurrentState = useCallback(() => {
     if (!currentPlaylistIdRef.current) return;
@@ -181,7 +222,9 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
             currentTimeRef.current = t;
           }
           if (playerRef.current?.getDuration) {
-            setDuration(playerRef.current.getDuration() || 0);
+            const d = playerRef.current.getDuration() || 0;
+            setDuration(d);
+            durationRef.current = d;
           }
           if (playerRef.current?.getVideoData) {
             const data = playerRef.current.getVideoData();
@@ -201,6 +244,7 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
             if (list) setTotalTracks(list.length);
           }
           persistCurrentState();
+          syncMediaSession();
         } catch (e) {
           // Ignore polling errors during track transitions
         }
@@ -212,7 +256,7 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isPlaying, persistCurrentState]);
+  }, [isPlaying, persistCurrentState, syncMediaSession]);
 
   // Load YouTube Iframe API
   useEffect(() => {
@@ -254,8 +298,10 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
     }
 
     playerRef.current = new window.YT!.Player(elementId, {
-      height: '1',
-      width: '1',
+      // Real iframe dimensions help some mobile browsers keep media eligible
+      // for lock-screen / background controls (1x1 + opacity:0 often gets suspended).
+      height: '180',
+      width: '320',
       playerVars: {
         listType: 'playlist',
         list: cleanId,
@@ -297,6 +343,7 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
             }
           }
           if (initialWasPlaying) {
+            wantPlayingRef.current = true;
             try {
               event.target.playVideo();
             } catch (e) {}
@@ -317,6 +364,7 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
               }
             }
           } catch (e) {}
+          syncMediaSession();
         },
         onStateChange: (event: { data: number }) => {
           const state = event.data;
@@ -336,15 +384,26 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
             if (state === window.YT.PlayerState.PLAYING) {
               setIsPlaying(true);
               isPlayingRef.current = true;
+              wantPlayingRef.current = true;
               setHasUserStarted(true);
               persistCurrentState();
+              syncMediaSession();
             } else if (
               state === window.YT.PlayerState.PAUSED ||
               state === window.YT.PlayerState.ENDED
             ) {
               setIsPlaying(false);
               isPlayingRef.current = false;
+              // ENDED means track finished — allow next cue; only clear intent on explicit pause
+              // when page is still visible (user paused). If page is hidden, OS/YouTube may
+              // pause us — keep wantPlaying so lock-screen Play / resume can restart.
+              if (state === window.YT.PlayerState.ENDED) {
+                wantPlayingRef.current = true;
+              } else if (typeof document !== 'undefined' && !document.hidden) {
+                wantPlayingRef.current = false;
+              }
               persistCurrentState();
+              syncMediaSession();
             }
           }
         },
@@ -359,7 +418,7 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
         playerRef.current = null;
       }
     };
-  }, [isApiReady, playlistId, volume, persistCurrentState]);
+  }, [isApiReady, playlistId, volume, persistCurrentState, syncMediaSession]);
 
   // Load new playlist when prop changes
   useEffect(() => {
@@ -379,38 +438,60 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
   }, [playlistId]);
 
   // User interactions exposed to window/parent
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     if (!playerRef.current) return;
     setHasUserStarted(true);
-    if (isPlaying) {
+    if (isPlayingRef.current) {
+      wantPlayingRef.current = false;
       playerRef.current.pauseVideo();
     } else {
+      wantPlayingRef.current = true;
       playerRef.current.playVideo();
     }
-  };
+    syncMediaSession();
+  }, [syncMediaSession]);
 
-  const nextTrack = () => {
+  const play = useCallback(() => {
+    if (!playerRef.current) return;
+    setHasUserStarted(true);
+    wantPlayingRef.current = true;
+    playerRef.current.playVideo();
+    syncMediaSession();
+  }, [syncMediaSession]);
+
+  const pause = useCallback(() => {
+    if (!playerRef.current) return;
+    wantPlayingRef.current = false;
+    playerRef.current.pauseVideo();
+    syncMediaSession();
+  }, [syncMediaSession]);
+
+  const nextTrack = useCallback(() => {
     if (playerRef.current) {
       setHasUserStarted(true);
+      wantPlayingRef.current = true;
       playerRef.current.nextVideo();
     }
-  };
+  }, []);
 
-  const prevTrack = () => {
+  const prevTrack = useCallback(() => {
     if (playerRef.current) {
       setHasUserStarted(true);
+      wantPlayingRef.current = true;
       playerRef.current.previousVideo();
     }
-  };
+  }, []);
 
-  const seekTo = (seconds: number) => {
+  const seekTo = useCallback((seconds: number) => {
     if (playerRef.current) {
       playerRef.current.seekTo(seconds, true);
       setCurrentTime(seconds);
+      currentTimeRef.current = seconds;
+      syncMediaSession();
     }
-  };
+  }, [syncMediaSession]);
 
-  const setVolume = (level: number) => {
+  const setVolume = useCallback((level: number) => {
     if (playerRef.current) {
       playerRef.current.setVolume(level);
       setVolumeState(level);
@@ -419,9 +500,9 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
         setIsMuted(false);
       }
     }
-  };
+  }, [isMuted]);
 
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     if (!playerRef.current) return;
     if (isMuted) {
       playerRef.current.unMute();
@@ -430,7 +511,84 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
       playerRef.current.mute();
       setIsMuted(true);
     }
-  };
+  }, [isMuted]);
+
+  // Lock-screen / notification media controls (Media Session API)
+  useEffect(() => {
+    const unbind = bindMediaSessionHandlers({
+      play: () => {
+        wantPlayingRef.current = true;
+        play();
+      },
+      pause: () => {
+        wantPlayingRef.current = false;
+        pause();
+      },
+      previoustrack: () => prevTrack(),
+      nexttrack: () => nextTrack(),
+      seekto: (seconds) => seekTo(seconds),
+      seekbackward: () => {
+        seekTo(Math.max(0, currentTimeRef.current - 10));
+      },
+      seekforward: () => {
+        const max = durationRef.current || currentTimeRef.current + 10;
+        seekTo(Math.min(max, currentTimeRef.current + 10));
+      },
+    });
+    syncMediaSession();
+    return unbind;
+  }, [play, pause, prevTrack, nextTrack, seekTo, syncMediaSession]);
+
+  // Keep / resume playback when the tab is backgrounded or the phone is locked.
+  // Mobile browsers and YouTube often pause embeds on lock. We:
+  // 1) keep Media Session "playing" so lock-screen Play stays available when the OS allows it
+  // 2) attempt a few short resumes after backgrounding (helps some Android browsers)
+  // 3) always resume when the page becomes visible again if the user still wants playback
+  // Continuous forced play while locked is intentionally avoided (YouTube/OS policy + battery).
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) {
+        if (wantPlayingRef.current || isPlayingRef.current) {
+          wantPlayingRef.current = true;
+          syncMediaSession();
+          // A few spaced resume attempts right after lock/background
+          tryResumePlayback();
+          window.setTimeout(() => {
+            if (wantPlayingRef.current && document.hidden) tryResumePlayback();
+          }, 400);
+          window.setTimeout(() => {
+            if (wantPlayingRef.current && document.hidden) tryResumePlayback();
+          }, 1200);
+          window.setTimeout(() => {
+            if (wantPlayingRef.current && document.hidden) tryResumePlayback();
+          }, 3000);
+        }
+      } else {
+        if (wantPlayingRef.current) {
+          tryResumePlayback();
+          syncMediaSession();
+        }
+      }
+    };
+
+    const handlePageShow = () => {
+      if (wantPlayingRef.current) tryResumePlayback();
+    };
+
+    const handleFreeze = () => {
+      persistCurrentState();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pageshow', handlePageShow);
+    document.addEventListener('freeze', handleFreeze as EventListener);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pageshow', handlePageShow);
+      document.removeEventListener('freeze', handleFreeze as EventListener);
+    };
+  }, [tryResumePlayback, syncMediaSession, persistCurrentState]);
 
   // Listen to window custom events from PlayerPill
   useEffect(() => {
@@ -464,9 +622,24 @@ export const AudioEngine: React.FC<AudioEngineProps> = ({
     };
   }, [togglePlay, nextTrack, prevTrack, seekTo, setVolume, toggleMute]);
 
+  // Off-screen but real-sized player: opacity:0 / 1×1 iframes are often suspended
+  // by mobile browsers when the screen locks. Keep a full iframe in the DOM tree,
+  // clipped off-viewport so audio remains an eligible media session source.
   return (
-    <div className="fixed -top-9999px -left-9999px pointer-events-none opacity-0 overflow-hidden w-1 h-1">
-      <div ref={containerRef} />
+    <div
+      aria-hidden="true"
+      className="fixed pointer-events-none overflow-hidden"
+      style={{
+        width: 320,
+        height: 180,
+        top: 0,
+        left: 0,
+        transform: 'translate(-10000px, -10000px)',
+        // Do not use opacity:0 or visibility:hidden — those can kill mobile media.
+        zIndex: -1,
+      }}
+    >
+      <div ref={containerRef} className="w-full h-full" />
     </div>
   );
 };
