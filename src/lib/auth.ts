@@ -8,21 +8,28 @@ const DEV_JWT_FALLBACK =
 
 const COOKIE_NAME = 'saloon_admin_session';
 
+let warnedMissingJwtSecret = false;
+
 /**
  * Resolve the JWT signing key lazily.
  * Must NOT throw at module import time: `next build` sets NODE_ENV=production
  * while collecting route config, and env vars may only exist at runtime (Vercel).
+ *
+ * When JWT_SECRET is unset we use a stable in-repo fallback so /admin login
+ * still works on hosts that have not configured env vars yet (same zero-config
+ * pattern as ADMIN_INITIAL_PASSWORD). Set JWT_SECRET in production.
  */
 function getJwtSecretKey(): Uint8Array {
-  const secret = process.env.JWT_SECRET;
+  const secret = process.env.JWT_SECRET?.trim();
   if (secret) {
     return new TextEncoder().encode(secret);
   }
 
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error(
-      'JWT_SECRET environment variable is not set. ' +
-        'Set a strong random secret before deploying to production.'
+  if (process.env.NODE_ENV === 'production' && !warnedMissingJwtSecret) {
+    warnedMissingJwtSecret = true;
+    console.warn(
+      'JWT_SECRET is not set. Admin sessions are signed with an insecure fallback. ' +
+        'Set a strong random JWT_SECRET in your hosting environment before treating this as production.'
     );
   }
 

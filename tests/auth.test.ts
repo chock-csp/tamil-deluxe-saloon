@@ -69,12 +69,20 @@ describe('JWT_SECRET production build safety', () => {
     await expect(import('../src/lib/auth')).resolves.toBeTruthy();
   });
 
-  it('should throw at runtime when signing without JWT_SECRET in production', async () => {
+  it('should sign with a fallback secret when JWT_SECRET is unset in production', async () => {
     delete process.env.JWT_SECRET;
     setNodeEnv('production');
     vi.resetModules();
 
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const auth = await import('../src/lib/auth');
-    await expect(auth.signAdminToken('id', 'admin')).rejects.toThrow(/JWT_SECRET/);
+    const token = await auth.signAdminToken('id', 'admin');
+    const payload = await auth.verifyAdminToken(token);
+
+    expect(typeof token).toBe('string');
+    expect(payload?.sub).toBe('id');
+    expect(payload?.username).toBe('admin');
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/JWT_SECRET/));
+    warn.mockRestore();
   });
 });
