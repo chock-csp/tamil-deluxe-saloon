@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Lock, LogOut, Radio, Save, CheckCircle2, Eye, KeyRound, AlertCircle, ArrowLeft, RefreshCw, Star, RotateCcw, CheckSquare, Square } from 'lucide-react';
 import Link from 'next/link';
+import { PlaylistOwnershipPanel } from '@/components/PlaylistOwnershipPanel';
 
 interface PlaylistRow {
   id: string;
@@ -126,6 +127,22 @@ export default function AdminPage() {
     const updated = [...rows];
     updated[index] = { ...updated[index], isActive: !updated[index].isActive };
     setRows(updated);
+  };
+
+  const handleApplyOwnedPlaylist = (rowId: string, youtubeId: string, spotifyUrl: string) => {
+    setRows((current) =>
+      current.map((row) =>
+        row.id === rowId
+          ? {
+              ...row,
+              youtubeId,
+              spotifyUrl,
+              ytMusicUrl: `https://music.youtube.com/playlist?list=${youtubeId}`,
+            }
+          : row
+      )
+    );
+    showNotice('Filled the selected row with your new YouTube and Spotify playlists. Click Save All Changes.');
   };
 
   const adminHeaders = () => ({
@@ -407,6 +424,12 @@ export default function AdminPage() {
             <span>{noticeMessage}</span>
           </div>
         )}
+
+        <PlaylistOwnershipPanel
+          rows={rows}
+          csrfToken={csrfToken}
+          onApplyToRow={handleApplyOwnedPlaylist}
+        />
 
         {/* 10-Row Table List */}
         <div className="glass-panel p-4 sm:p-6 rounded-3xl border border-amber-500/25 space-y-4">
