@@ -3,37 +3,163 @@ import { cookies, headers } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
-const DEV_JWT_FALLBACK =
-  'tamil-deluxe-saloon-super-secret-jwt-key-90s-hits-DO-NOT-USE-IN-PROD';
-
 const COOKIE_NAME = 'saloon_admin_session';
+const MIN_JWT_SECRET_LENGTH = 16;
+
+/**
+ * Secrets that were previously hardcoded in this repository. Anyone with GitHub
+ * access already knows them, so they must never be accepted as production values.
+ */
+const REJECTED_PASSWORDS = new Set([
+  'saloon123',
+  'admin',
+  'admin123',
+  'password',
+]);
+
+const REJECTED_JWT_SECRETS = new Set([
+  'tamil-deluxe-saloon-super-secret-jwt-key-90s-hits-DO-NOT-USE-IN-PROD',
+  'tamil-deluxe-saloon-super-secret-jwt-key-90s-hits',
+  'replace-with-a-secure-random-secret-key',
+]);
 
 let warnedMissingJwtSecret = false;
+let warnedInsecureJwtSecret = false;
+let warnedMissingAdminPassword = false;
+let warnedRejectedAdminPassword = false;
+
+export class AuthConfigurationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AuthConfigurationError';
+  }
+}
+
+/**
+ * Timing-safe string compare via SHA-256 so unequal lengths cannot leak.
+ */
+export function timingSafeStringEqual(a: string, b: string): boolean {
+  const digestA = crypto.createHash('sha256').update(a, 'utf8').digest();
+  const digestB = crypto.createHash('sha256').update(b, 'utf8').digest();
+  return crypto.timingSafeEqual(digestA, digestB);
+}
+
+function readEnv(name: string): string {
+  return process.env[name]?.trim() ?? '';
+}
 
 /**
  * Resolve the JWT signing key lazily.
  * Must NOT throw at module import time: `next build` sets NODE_ENV=production
  * while collecting route config, and env vars may only exist at runtime (Vercel).
  *
- * When JWT_SECRET is unset we use a stable in-repo fallback so /admin login
- * still works on hosts that have not configured env vars yet (same zero-config
- * pattern as ADMIN_INITIAL_PASSWORD). Set JWT_SECRET in production.
+ * There is no in-repo fallback. JWT_SECRET must be set in the environment
+ * (local `.env` or Vercel Project Settings → Environment Variables).
  */
 function getJwtSecretKey(): Uint8Array {
-  const secret = process.env.JWT_SECRET?.trim();
-  if (secret) {
-    return new TextEncoder().encode(secret);
+  const secret = readEnv('JWT_SECRET');
+
+  if (!secret) {
+    if (!warnedMissingJwtSecret) {
+      warnedMissingJwtSecret = true;
+      console.warn(
+        'JWT_SECRET is not set. Admin login is disabled until you configure a strong random secret.'
+      );
+    }
+    throw new AuthConfigurationError('JWT_SECRET is not configured');
   }
 
-  if (process.env.NODE_ENV === 'production' && !warnedMissingJwtSecret) {
-    warnedMissingJwtSecret = true;
-    console.warn(
-      'JWT_SECRET is not set. Admin sessions are signed with an insecure fallback. ' +
-        'Set a strong random JWT_SECRET in your hosting environment before treating this as production.'
-    );
+  if (secret.length < MIN_JWT_SECRET_LENGTH || REJECTED_JWT_SECRETS.has(secret)) {
+    if (!warnedInsecureJwtSecret) {
+      warnedInsecureJwtSecret = true;
+      console.warn(
+        'JWT_SECRET is too short or matches a previously leaked in-repo value. ' +
+          'Generate a new secret (e.g. openssl rand -base64 32) and set it in the environment.'
+      );
+    }
+    throw new AuthConfigurationError('JWT_SECRET is not a usable production secret');
   }
 
-  return new TextEncoder().encode(DEV_JWT_FALLBACK);
+  return new TextEncoder().encode(secret);
+}
+
+export function isJwtConfigured(): boolean {
+  try {
+    getJwtSecretKey();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export interface AdminCredentialConfig {
+  username: string;
+  password: string | null;
+  passwordHash: string | null;
+}
+
+/**
+ * Admin username + password come only from environment variables / Vercel secrets.
+ * No hardcoded defaults. ADMIN_INITIAL_PASSWORD is accepted as a legacy alias for
+ * ADMIN_PASSWORD so existing Vercel projects keep working.
+ */
+export function getAdminCredentialConfig(): AdminCredentialConfig | null {
+  const username = readEnv('ADMIN_USERNAME') || 'admin';
+  const passwordHash = readEnv('ADMIN_PASSWORD_HASH') || null;
+  let password: string | null =
+    readEnv('ADMIN_PASSWORD') || readEnv('ADMIN_INITIAL_PASSWORD') || null;
+
+  if (!password && !passwordHash) {
+    if (!warnedMissingAdminPassword) {
+      warnedMissingAdminPassword = true;
+      console.warn(
+        'ADMIN_PASSWORD (or ADMIN_PASSWORD_HASH) is not set. Admin login is disabled.'
+      );
+    }
+    return null;
+  }
+
+  if (password && REJECTED_PASSWORDS.has(password)) {
+    if (!passwordHash) {
+      if (!warnedRejectedAdminPassword) {
+        warnedRejectedAdminPassword = true;
+        console.warn(
+          'ADMIN_PASSWORD matches a previously published default. Choose a new password and set it in the environment.'
+        );
+      }
+      return null;
+    }
+    password = null;
+  }
+
+  return { username, password, passwordHash };
+}
+
+export function isAdminAuthConfigured(): boolean {
+  return isJwtConfigured() && getAdminCredentialConfig() !== null;
+}
+
+export async function verifyAdminCredentials(
+  username: string,
+  password: string
+): Promise<boolean> {
+  const config = getAdminCredentialConfig();
+  if (!config) return false;
+
+  const userOk = timingSafeStringEqual(username, config.username);
+
+  let passOk = false;
+  if (config.passwordHash) {
+    try {
+      passOk = await verifyPassword(password, config.passwordHash);
+    } catch {
+      passOk = false;
+    }
+  } else if (config.password) {
+    passOk = timingSafeStringEqual(password, config.password);
+  }
+
+  return userOk && passOk;
 }
 
 export interface AdminJwtPayload {
@@ -63,7 +189,7 @@ export async function verifyAdminToken(token: string): Promise<AdminJwtPayload |
   try {
     const verified = await jwtVerify(token, getJwtSecretKey());
     return verified.payload as unknown as AdminJwtPayload;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -97,7 +223,7 @@ export async function clearAdminSessionCookie() {
  */
 export function deriveCsrfToken(sessionToken: string): string {
   return crypto
-    .createHmac('sha256', getJwtSecretKey())
+    .createHmac('sha256', Buffer.from(getJwtSecretKey()))
     .update(sessionToken)
     .digest('hex');
 }
@@ -122,11 +248,15 @@ export async function verifyCsrfToken(request: Request): Promise<boolean> {
   const rawSession = await getRawSessionToken();
   if (!rawSession) return false;
 
-  const expected = deriveCsrfToken(rawSession);
-  return crypto.timingSafeEqual(
-    Buffer.from(clientToken, 'hex'),
-    Buffer.from(expected, 'hex')
-  );
+  try {
+    const expected = deriveCsrfToken(rawSession);
+    const clientBuf = Buffer.from(clientToken, 'hex');
+    const expectedBuf = Buffer.from(expected, 'hex');
+    if (clientBuf.length !== expectedBuf.length) return false;
+    return crypto.timingSafeEqual(clientBuf, expectedBuf);
+  } catch {
+    return false;
+  }
 }
 
 /**

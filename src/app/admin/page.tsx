@@ -19,7 +19,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
 
   // Login state
-  const [username, setUsername] = useState('admin');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loggingIn, setLoggingIn] = useState(false);
@@ -274,10 +274,11 @@ export default function AdminPage() {
               <input
                 type="text"
                 required
+                autoComplete="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-amber-500/30 text-amber-100 focus:outline-none focus:border-amber-400 text-sm"
-                placeholder="admin"
+                placeholder="Username"
               />
             </div>
 
@@ -289,10 +290,11 @@ export default function AdminPage() {
                 <input
                   type="password"
                   required
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-amber-500/30 text-amber-100 focus:outline-none focus:border-amber-400 text-sm pr-10"
-                  placeholder="••••••••"
+                  placeholder="Password"
                 />
                 <KeyRound className="w-4 h-4 text-amber-500/50 absolute right-3 top-3" />
               </div>
@@ -308,7 +310,7 @@ export default function AdminPage() {
           </form>
 
           <div className="text-center text-[11px] text-amber-400/50 pt-2 border-t border-amber-500/10">
-            Seed Credentials: <code className="text-amber-300">admin</code> / <code className="text-amber-300">saloon123</code>
+            Credentials are stored as server environment variables, not in this page or the repository.
           </div>
         </div>
       </div>

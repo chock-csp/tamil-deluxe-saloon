@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import { signAdminToken, setAdminSessionCookie, deriveCsrfToken, requireJsonContentType } from '@/lib/auth';
+import {
+  signAdminToken,
+  setAdminSessionCookie,
+  deriveCsrfToken,
+  requireJsonContentType,
+  isAdminAuthConfigured,
+  verifyAdminCredentials,
+  getAdminCredentialConfig,
+  AuthConfigurationError,
+} from '@/lib/auth';
 
 // In-process sliding-window rate limiter: max 10 attempts per IP per 15 minutes.
 // Works in long-lived Node.js processes (dev, self-hosted). On stateless serverless
@@ -66,35 +75,48 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!isAdminAuthConfigured()) {
+      return NextResponse.json(
+        { error: 'Admin authentication is not configured on the server' },
+        { status: 503 }
+      );
+    }
+
     const { username, password } = await request.json();
 
-    if (!username || !password) {
+    if (typeof username !== 'string' || typeof password !== 'string' || !username || !password) {
       return NextResponse.json(
         { error: 'Username and password are required' },
         { status: 400 }
       );
     }
 
-    const expectedAdmin = process.env.ADMIN_USERNAME || 'admin';
-    const expectedPassword = process.env.ADMIN_INITIAL_PASSWORD || 'saloon123';
-
-    if (username !== expectedAdmin || password !== expectedPassword) {
+    const matched = await verifyAdminCredentials(username, password);
+    if (!matched) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
       );
     }
 
-    const token = await signAdminToken('admin-user-id', expectedAdmin);
+    const config = getAdminCredentialConfig();
+    const adminUsername = config?.username || username;
+    const token = await signAdminToken('admin-user-id', adminUsername);
     await setAdminSessionCookie(token);
     const csrfToken = deriveCsrfToken(token);
 
     return NextResponse.json({
       success: true,
-      user: { id: 'admin-user-id', username: expectedAdmin },
+      user: { id: 'admin-user-id', username: adminUsername },
       csrfToken,
     });
   } catch (error) {
+    if (error instanceof AuthConfigurationError) {
+      return NextResponse.json(
+        { error: 'Admin authentication is not configured on the server' },
+        { status: 503 }
+      );
+    }
     console.error('Login error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
