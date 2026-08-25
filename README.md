@@ -20,6 +20,7 @@ A production-ready, highly aesthetic nostalgic Tamil radio & saloon web applicat
 
 ### 2. 🔐 Secure Admin Panel (`/admin`)
 - Protected admin routes with JWT session cookies (`jose`), password hashing (`bcryptjs`), and API authentication.
+- Admin username and password are read from environment variables / Vercel secrets — they are never shown on the login page and are not stored in the repository.
 - **10-Playlist Manager**: Add, edit, delete, or reorder playlists.
 - **YouTube Metadata Auto-Fetcher**: Fetch playlist titles & cover art previews automatically using YouTube ID.
 - **Active Override Manager**: Force set any playlist as today's active station.
@@ -56,32 +57,29 @@ npm install
 ```
 
 ### 2. Configure Environment Variables
-Copy `.env.example` to `.env`:
+Copy `.env.example` to `.env.local`:
 ```bash
-cp .env.example .env
+cp .env.example .env.local
 ```
-Default `.env` configuration:
+
+Then set your own secrets (do not reuse example placeholders):
 ```env
-DATABASE_URL="file:./dev.db"
-JWT_SECRET="tamil-deluxe-saloon-super-secret-jwt-key-90s-hits"
-ADMIN_INITIAL_PASSWORD="saloon123"
+JWT_SECRET="<generate with: openssl rand -base64 32>"
+ADMIN_USERNAME="admin"
+ADMIN_PASSWORD="<a strong password that is not in git>"
 ```
 
-### 3. Initialize & Seed Database
-```bash
-npx prisma db push
-npm run db:seed
-```
+`ADMIN_PASSWORD` (or the legacy alias `ADMIN_INITIAL_PASSWORD`) is required. There is no default password, and previously published in-repo defaults are rejected even if set.
 
-### 4. Run Development Server
+### 3. Run Development Server
 ```bash
 npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 - **Main Radio Page**: `http://localhost:3000`
-- **Admin Dashboard**: `http://localhost:3000/admin/dashboard`
-- **Default Admin Login**: Username: `admin` | Password: `saloon123`
+- **Admin Dashboard**: `http://localhost:3000/admin`
+- **Admin Login**: use the `ADMIN_USERNAME` / `ADMIN_PASSWORD` values from your local env file or Vercel project settings.
 
 ---
 
@@ -91,10 +89,13 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 1. Push your repository to GitHub.
 2. Go to [Vercel Dashboard](https://vercel.com) and click **"Add New Project"**.
 3. Import your `tamil-deluxe-saloon` repository.
-4. Set Environment Variables in Vercel:
-   - `JWT_SECRET`: (Random secure string)
-   - `ADMIN_INITIAL_PASSWORD`: (Your desired admin password)
+4. Set Environment Variables in Vercel (Project Settings → Environment Variables):
+   - `JWT_SECRET`: a long random string (`openssl rand -base64 32`). Required for admin sessions.
+   - `ADMIN_USERNAME`: admin username (optional; defaults to `admin`).
+   - `ADMIN_PASSWORD`: your admin password. Required. Do not use a value that was ever committed to git.
 5. Deploy! Vercel automatically builds and provides free SSL and global CDN.
+
+Admin login will return HTTP 503 until `JWT_SECRET` and `ADMIN_PASSWORD` are set. There is no in-repo fallback password or JWT signing key.
 
 ---
 
