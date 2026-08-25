@@ -19,8 +19,8 @@ export const SaloonArtBackground: React.FC<SaloonArtBackgroundProps> = ({
         }`}
       >
         <Image
-          src="/images/saloon-wide.png"
-          alt="1990s South Indian Barber Shop Background"
+          src="/images/minimalist_desktop.png"
+          alt="Minimalist Tamil tea kadai with a tea master pouring tea"
           fill
           priority
           sizes="100vw"
@@ -35,8 +35,8 @@ export const SaloonArtBackground: React.FC<SaloonArtBackgroundProps> = ({
         }`}
       >
         <Image
-          src="/images/saloon-vertical.png"
-          alt="1990s South Indian Barber Shop Vertical Background"
+          src="/images/minimalist_mobile.png"
+          alt="Minimalist Tamil tea kadai with a tea master, copper boiler, and customers"
           fill
           priority
           sizes="100vw"
@@ -44,12 +44,12 @@ export const SaloonArtBackground: React.FC<SaloonArtBackgroundProps> = ({
         />
       </div>
 
-      {/* Subtle Top & Bottom Gradient Scrim for Button/Text Legibility */}
-      <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-black/70 via-black/30 to-transparent" />
-      <div className="absolute bottom-0 inset-x-0 h-36 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+      {/* Light scrims so controls stay readable without washing out the cream illustration */}
+      <div className="absolute top-0 inset-x-0 h-28 bg-gradient-to-b from-black/35 via-black/10 to-transparent" />
+      <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-black/40 via-black/15 to-transparent" />
 
       {/* Audio Reactive Visualizer Top Light Bars */}
-      <div className="absolute top-0 inset-x-0 h-16 flex items-start justify-center space-x-1.5 sm:space-x-2 pt-2 px-8 opacity-70">
+      <div className="absolute top-0 inset-x-0 h-16 flex items-start justify-center space-x-1.5 sm:space-x-2 pt-2 px-8 opacity-35">
         {Array.from({ length: 36 }).map((_, i) => (
           <div
             key={i}

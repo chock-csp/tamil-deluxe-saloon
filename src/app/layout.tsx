@@ -37,10 +37,10 @@ export const metadata: Metadata = {
     siteName: 'Tamil Deluxe Saloon',
     images: [
       {
-        url: 'https://images.unsplash.com/photo-1593720213428-28a5b9e94613?auto=format&fit=crop&w=1200&q=80',
-        width: 1200,
-        height: 630,
-        alt: 'Tamil Deluxe Saloon Radio',
+        url: 'https://tamil-deluxe-saloon.vercel.app/images/minimalist_desktop.png',
+        width: 2302,
+        height: 1856,
+        alt: 'Tamil tea kadai radio',
       },
     ],
     locale: 'en_IN',
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Tamil Deluxe Saloon (தமிழ் டீ கடை & சலூன் 90s/2000s Hits)',
     description: 'Nostalgic 24/7 Tamil Barber Shop & Tea Shop Radio',
-    images: ['https://images.unsplash.com/photo-1593720213428-28a5b9e94613?auto=format&fit=crop&w=1200&q=80'],
+    images: ['https://tamil-deluxe-saloon.vercel.app/images/minimalist_desktop.png'],
   },
 };
 
@@ -61,7 +61,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ta" className="h-full antialiased dark">
-      <body className="min-h-full flex flex-col bg-[#130a06] text-amber-100 font-sans">
+      <body className="min-h-full flex flex-col bg-[#efe6d4] text-amber-100 font-sans">
         {children}
       </body>
     </html>
