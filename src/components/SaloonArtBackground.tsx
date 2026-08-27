@@ -19,8 +19,8 @@ export const SaloonArtBackground: React.FC<SaloonArtBackgroundProps> = ({
         }`}
       >
         <Image
-          src="/images/minimalist_desktop.png"
-          alt="Minimalist Tamil tea kadai with a tea master pouring tea"
+          src="/images/tea_kadai_desktop.png"
+          alt="Retro Tamil tea kadai with a tea master pouring tea"
           fill
           priority
           sizes="100vw"
@@ -35,8 +35,8 @@ export const SaloonArtBackground: React.FC<SaloonArtBackgroundProps> = ({
         }`}
       >
         <Image
-          src="/images/minimalist_mobile.png"
-          alt="Minimalist Tamil tea kadai with a tea master, copper boiler, and customers"
+          src="/images/tea_kadai_mobile.png"
+          alt="Retro Tamil tea kadai with a tea master, copper boiler, and customers"
           fill
           priority
           sizes="100vw"
@@ -44,12 +44,12 @@ export const SaloonArtBackground: React.FC<SaloonArtBackgroundProps> = ({
         />
       </div>
 
-      {/* Light scrims so controls stay readable without washing out the cream illustration */}
-      <div className="absolute top-0 inset-x-0 h-28 bg-gradient-to-b from-black/35 via-black/10 to-transparent" />
-      <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-black/40 via-black/15 to-transparent" />
+      {/* Top & bottom scrims so player controls stay readable on the dark photo */}
+      <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-black/70 via-black/30 to-transparent" />
+      <div className="absolute bottom-0 inset-x-0 h-36 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
 
       {/* Audio Reactive Visualizer Top Light Bars */}
-      <div className="absolute top-0 inset-x-0 h-16 flex items-start justify-center space-x-1.5 sm:space-x-2 pt-2 px-8 opacity-35">
+      <div className="absolute top-0 inset-x-0 h-16 flex items-start justify-center space-x-1.5 sm:space-x-2 pt-2 px-8 opacity-70">
         {Array.from({ length: 36 }).map((_, i) => (
           <div
             key={i}

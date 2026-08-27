@@ -108,7 +108,7 @@ export default function MinimalSaloonHomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#efe6d4] flex items-center justify-center text-amber-800">
+      <div className="min-h-screen bg-[#1a0f0a] flex items-center justify-center text-amber-300">
         <Disc3 className="w-8 h-8 animate-spin" />
       </div>
     );
@@ -244,11 +244,11 @@ export default function MinimalSaloonHomePage() {
 
         {/* 2. Track Time & Song Title */}
         <div className="text-center space-y-1 pt-1 max-w-md">
-          <div className="text-base sm:text-lg font-mono font-bold text-amber-950 tracking-wider drop-shadow-[0_1px_8px_rgba(255,255,255,0.85)]">
+          <div className="text-base sm:text-lg font-mono font-bold text-amber-200 tracking-wider drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">
             {formatTime(audioState.currentTime)} / {formatTime(audioState.duration)}
           </div>
           {audioState.trackTitle && (
-            <p className="text-xs sm:text-sm text-stone-800 font-medium truncate px-4 drop-shadow-[0_1px_8px_rgba(255,255,255,0.85)]">
+            <p className="text-xs sm:text-sm text-amber-300/90 font-medium truncate px-4 drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">
               {audioState.trackTitle}
             </p>
           )}
